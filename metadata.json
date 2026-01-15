@@ -1,0 +1,8 @@
+{
+  "name": "Beleza Glow",
+  "description": "Ecossistema digital completo de serviços de beleza conectando clientes, profissionais autônomos e salões com agendamento inteligente e gestão financeira.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
