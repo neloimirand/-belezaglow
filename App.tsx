@@ -42,7 +42,7 @@ const App: React.FC = () => {
       const health = await checkEcossystemHealth();
       setDbStatus(health.status as any);
 
-      // 1. Sincronizar Profissionais Reais da tabela 'profiles'
+      // 1. Sincronizar Profissionais Reais
       const { data: profiles, error: pError } = await supabase
         .from('profiles')
         .select('*')
@@ -63,13 +63,15 @@ const App: React.FC = () => {
           bio: p.bio || "Membro Oficial Beleza Glow.",
           portfolio: [p.photo_url || "https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=800"],
           planTier: p.plan_tier as any,
-          services: [] // Em um app real, buscaríamos da tabela 'services'
+          services: [] 
         }));
-        // Merge com mocks para não esvaziar o radar enquanto o banco cresce
-        setAllProviders([...mapped, ...MOCK_PROVIDERS.filter(m => !mapped.find(rm => rm.id === m.id))]);
+        setAllProviders(prev => {
+          const combined = [...mapped, ...MOCK_PROVIDERS.filter(m => !mapped.find(rm => rm.id === m.id))];
+          return combined;
+        });
       } 
       
-      // 2. Sincronizar Agenda Real do Usuário Logado
+      // 2. Sincronizar Agenda Real
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: bookings, error: bError } = await supabase
@@ -91,12 +93,11 @@ const App: React.FC = () => {
         }
       }
     } catch (e) {
-      console.warn("Resiliência local ativa durante sincronização.");
+      console.warn("Modo de resiliência local ativo.");
     }
   }, []);
 
   useEffect(() => {
-    // Gestor de Sessão Supabase
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         const meta = session.user.user_metadata;
@@ -130,18 +131,10 @@ const App: React.FC = () => {
     localStorage.setItem('glow_theme', theme);
   }, [theme]);
 
-  // Real-time listener para mudanças globais no banco
-  useEffect(() => {
-    const channel = supabase.channel('schema-db-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings' }, () => syncEcosystem())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => syncEcosystem())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [syncEcosystem]);
-
-  const handleLogin = (role: UserRole, email: string, name?: string) => {
+  const handleLogin = (role: UserRole, email: string) => {
     setShowLanding(false);
     if (role === UserRole.SALON || role === UserRole.PROFESSIONAL) setActiveTab('management');
+    else setActiveTab('home');
   };
 
   const handleLogout = async () => {
@@ -150,18 +143,18 @@ const App: React.FC = () => {
     setShowLanding(true);
   };
 
-  if (showLanding) return <Home onStartExploring={() => setShowLanding(false)} userRole={currentUser?.role} />;
+  if (showLanding) return <Home onStartExploring={() => setShowLanding(false)} userRole={currentUser?.role} onSelectProvider={setSelectedProvider} />;
   if (!isAuthenticated) return <LoginPage onLogin={handleLogin} />;
 
   return (
-    <div className="min-h-screen bg-offwhite dark:bg-onyx transition-colors duration-500">
+    <div className="min-h-screen bg-offwhite dark:bg-onyx transition-colors duration-700">
       <InstallBanner />
       
-      {/* STATUS DE CONEXÃO DA INFRAESTRUTURA */}
-      <div className="fixed top-4 left-4 z-[9999] flex items-center gap-2 bg-onyx/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-2xl">
-         <div className={`w-1.5 h-1.5 rounded-full ${dbStatus === 'healthy' ? 'bg-emerald animate-pulse' : 'bg-gold animate-spin'}`}></div>
-         <span className="text-[7px] font-black uppercase text-white tracking-[0.2em]">
-           {dbStatus === 'healthy' ? 'Cloud Sync active' : 'Connecting to Core'}
+      {/* INDICADOR DE INFRAESTRUTURA */}
+      <div className="fixed top-6 left-6 z-[9999] hidden md:flex items-center gap-3 bg-onyx/80 backdrop-blur-xl px-4 py-2 rounded-full border border-white/10 shadow-2xl">
+         <div className={`w-2 h-2 rounded-full ${dbStatus === 'healthy' ? 'bg-emerald animate-pulse' : 'bg-gold animate-spin'}`}></div>
+         <span className="text-[8px] font-black uppercase text-white tracking-widest">
+           {dbStatus === 'healthy' ? 'Glow Cloud Sync' : 'Connecting Core'}
          </span>
       </div>
 
@@ -180,7 +173,7 @@ const App: React.FC = () => {
         )}
 
         {activeTab === 'map' && (
-          <div className="h-[75vh] relative rounded-[50px] overflow-hidden luxury-shadow">
+          <div className="h-[78vh] relative rounded-[60px] overflow-hidden luxury-shadow border border-quartz/10">
             <MapExplorer providers={allProviders} onSelectProvider={setSelectedProvider} />
           </div>
         )}

@@ -3,6 +3,12 @@
   "description": "Ecossistema digital completo de serviços de beleza conectando clientes, profissionais autônomos e salões com agendamento inteligente e gestão financeira.",
   "requestFramePermissions": [
     "camera",
-    "geolocation"
-  ]
+    "geolocation",
+    "microphone"
+  ],
+  "pwa": {
+    "scope": "/",
+    "display": "standalone",
+    "notifications": true
+  }
 }

@@ -23,8 +23,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     setError(null);
     setIsLoading(true);
 
-    // SANITIZAÇÃO AGRESSIVA: Remove todos os espaços e converte para minúsculas
-    const cleanEmail = email.replace(/\s/g, '').toLowerCase();
+    // Limpeza profunda do e-mail para evitar erros do validador GoTrue
+    const cleanEmail = email.trim().replace(/\s/g, '').toLowerCase();
     const cleanName = fullName.trim();
     const cleanPhone = phone.trim();
 
@@ -48,10 +48,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
         if (authError) {
           if (authError.message.toLowerCase().includes("invalid")) {
-            throw new Error("O formato do e-mail é inválido para o sistema. Verifique espaços ou domínios bloqueados no Dashboard.");
-          }
-          if (authError.message.includes("Database error")) {
-            throw new Error("Erro de Gatilho: Verifique o SQL do Trigger no Supabase.");
+            throw new Error("E-mail inválido ou formato não suportado. Verifique se há espaços.");
           }
           throw authError;
         }
@@ -73,12 +70,12 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
 
         if (authError) {
           if (authError.message.toLowerCase().includes("invalid")) {
-            throw new Error("E-mail ou formato inválido detectado pelo servidor.");
+            throw new Error("Credenciais inválidas ou e-mail malformado.");
           }
           throw authError;
         }
 
-        // Recuperar perfil real do banco público
+        // Tentar buscar perfil real
         const { data: profile } = await supabase
           .from('profiles')
           .select('*')
@@ -92,11 +89,8 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
         onLogin(finalRole, cleanEmail, finalName, profile?.phone || meta?.phone, authData.user?.id);
       }
     } catch (err: any) {
-      console.error("Auth System Log:", err);
-      let msg = err.message;
-      if (msg.includes("Invalid login credentials")) msg = "Credenciais inválidas no radar.";
-      if (msg.includes("User already registered")) msg = "Este e-mail já possui uma patente ativa.";
-      setError(msg || 'Erro na rede de elite.');
+      console.error("Auth Fail:", err);
+      setError(err.message || 'Erro crítico de rede.');
     } finally {
       setIsLoading(false);
     }
@@ -105,14 +99,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-onyx overflow-hidden">
       <div className="absolute inset-0 z-0">
-        <img src="https://images.unsplash.com/photo-1596462502278-27bfac4033c8?q=80&w=2000" className="w-full h-full object-cover opacity-20 grayscale" alt="Luxury" />
+        <img src="https://images.unsplash.com/photo-1596462502278-27bfac4033c8?q=80&w=2000" className="w-full h-full object-cover opacity-20 grayscale" alt="Luxury Background" />
         <div className="absolute inset-0 bg-gradient-to-tr from-onyx via-onyx/80 to-transparent"></div>
       </div>
 
       <div className="relative z-10 w-full max-w-xl px-6 animate-fade-in py-10 overflow-y-auto max-h-screen scrollbar-hide">
         <div className="bg-white/10 backdrop-blur-3xl p-8 md:p-14 rounded-[60px] border border-white/10 shadow-2xl space-y-8">
           <div className="text-center space-y-3">
-             <div className="w-20 h-20 bg-onyx rounded-[28px] flex items-center justify-center font-serif font-black italic text-3xl text-gold mx-auto border border-white/10">BG</div>
+             <div className="w-20 h-20 bg-onyx rounded-[28px] flex items-center justify-center font-serif font-black italic text-3xl text-gold mx-auto border border-white/10 shadow-2xl">BG</div>
              <h2 className="text-3xl font-serif font-black text-white italic">{isRegistering ? 'Nova Patente' : 'Acesso Elite'}</h2>
           </div>
 
@@ -124,16 +118,16 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                   { id: UserRole.PROFESSIONAL, label: 'Pro', icon: <Icons.Star filled /> },
                   { id: UserRole.SALON, label: 'Maison', icon: <Icons.Home /> }
                 ].map((opt) => (
-                  <button key={opt.id} type="button" onClick={() => setRole(opt.id)} className={`p-4 rounded-3xl border-2 flex flex-col items-center gap-2 transition-all ${role === opt.id ? 'border-gold bg-gold/10 scale-105' : 'border-white/5 bg-white/5'}`}>
+                  <button key={opt.id} type="button" onClick={() => setRole(opt.id)} className={`p-4 rounded-3xl border-2 flex flex-col items-center gap-2 transition-all ${role === opt.id ? 'border-gold bg-gold/10 scale-105 shadow-gold/20 shadow-lg' : 'border-white/5 bg-white/5 opacity-50'}`}>
                     <div className={role === opt.id ? 'text-gold' : 'text-quartz'}>{opt.icon}</div>
-                    <p className="text-[7px] font-black uppercase text-white">{opt.label}</p>
+                    <p className="text-[7px] font-black uppercase text-white tracking-widest">{opt.label}</p>
                   </button>
                 ))}
               </div>
             )}
 
             {error && (
-              <div className={`p-4 rounded-2xl text-[10px] font-bold text-center border leading-tight ${error.includes("Verifique") || error.includes("Patente") ? "bg-emerald/10 border-emerald/20 text-emerald" : "bg-red-500/10 border-red-500/20 text-red-500"}`}>
+              <div className="p-4 rounded-2xl text-[10px] font-bold text-center border bg-red-500/10 border-red-500/20 text-red-400">
                 {error}
               </div>
             )}
@@ -141,20 +135,20 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
             <div className="space-y-3">
               {isRegistering && (
                 <>
-                  <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nome Completo..." className="w-full bg-white/5 border border-white/10 rounded-[25px] py-4 px-6 outline-none text-white text-xs font-bold focus:ring-4 focus:ring-ruby/10 transition-all" />
-                  <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telemóvel..." className="w-full bg-white/5 border border-white/10 rounded-[25px] py-4 px-6 outline-none text-white text-xs font-bold focus:ring-4 focus:ring-ruby/10 transition-all" />
+                  <input type="text" required value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nome Completo..." className="w-full bg-white/5 border border-white/10 rounded-[25px] py-4 px-6 outline-none text-white text-xs font-bold focus:ring-4 focus:ring-ruby/10 transition-all shadow-inner" />
+                  <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Telemóvel..." className="w-full bg-white/5 border border-white/10 rounded-[25px] py-4 px-6 outline-none text-white text-xs font-bold focus:ring-4 focus:ring-ruby/10 transition-all shadow-inner" />
                 </>
               )}
-              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail de acesso..." className="w-full bg-white/5 border border-white/10 rounded-[25px] py-4 px-6 outline-none text-white text-xs font-bold focus:ring-4 focus:ring-ruby/10 transition-all" />
-              <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Senha secreta..." className="w-full bg-white/5 border border-white/10 rounded-[25px] py-4 px-6 outline-none text-white text-xs font-bold focus:ring-4 focus:ring-ruby/10 transition-all" />
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail de acesso..." className="w-full bg-white/5 border border-white/10 rounded-[25px] py-4 px-6 outline-none text-white text-xs font-bold focus:ring-4 focus:ring-ruby/10 transition-all shadow-inner" />
+              <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Senha secreta..." className="w-full bg-white/5 border border-white/10 rounded-[25px] py-4 px-6 outline-none text-white text-xs font-bold focus:ring-4 focus:ring-ruby/10 transition-all shadow-inner" />
             </div>
 
-            <button type="submit" disabled={isLoading} className="w-full py-6 bg-ruby text-white rounded-[30px] font-black uppercase tracking-[0.4em] text-[10px] shadow-2xl active:scale-95 transition-all disabled:opacity-50 border border-white/10">
-              {isLoading ? 'Sincronizando...' : isRegistering ? 'Criar Acesso' : 'Entrar no Radar'}
+            <button type="submit" disabled={isLoading} className="w-full py-6 bg-ruby text-white rounded-[30px] font-black uppercase tracking-[0.4em] text-[10px] shadow-[0_20px_50px_rgba(157,23,77,0.4)] active:scale-95 transition-all disabled:opacity-50 border border-white/10">
+              {isLoading ? 'Sincronizando...' : isRegistering ? 'Criar Patente' : 'Entrar no Radar'}
             </button>
 
             <button type="button" onClick={() => { setIsRegistering(!isRegistering); setError(null); }} className="w-full text-[9px] font-black uppercase text-quartz tracking-widest hover:text-white transition-colors">
-              {isRegistering ? 'Já possuo acesso' : 'Novo na rede? Criar conta'}
+              {isRegistering ? 'Já possuo acesso' : 'Novo na rede? Solicitar conta'}
             </button>
           </form>
         </div>
