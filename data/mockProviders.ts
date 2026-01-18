@@ -14,8 +14,9 @@ export const MOCK_PROVIDERS: ProviderProfile[] = [
     hasActiveSubscription: true,
     planTier: 'GOLD',
     employees: [
-      { id: 'emp1', name: 'Carla Silva', role: 'Master Hairstylist', photoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=200', commission: 30, phone: '923000111' },
-      { id: 'emp2', name: 'Mauro Vaz', role: 'Colorista Senior', photoUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200', commission: 25, phone: '923000222' }
+      // Fixed: Updated property names and added missing fields for Employee type
+      { id: 'emp1', name: 'Carla Silva', role: 'Master Hairstylist', photoUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=200', commissionPercent: 30, phone: '923000111', active: true, services: [] },
+      { id: 'emp2', name: 'Mauro Vaz', role: 'Colorista Senior', photoUrl: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=200', commissionPercent: 25, phone: '923000222', active: true, services: [] }
     ],
     portfolio: [
       'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=1000&auto=format&fit=crop',
@@ -39,7 +40,8 @@ export const MOCK_PROVIDERS: ProviderProfile[] = [
     hasActiveSubscription: true,
     planTier: 'GOLD',
     employees: [
-      { id: 'emp3', name: 'Bruno M.', role: 'Barbeiro Chefe', photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200', commission: 40, phone: '923000333' }
+      // Fixed: Updated property names and added missing fields for Employee type
+      { id: 'emp3', name: 'Bruno M.', role: 'Barbeiro Chefe', photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200', commissionPercent: 40, phone: '923000333', active: true, services: [] }
     ],
     portfolio: [
       'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=1000&auto=format&fit=crop',

@@ -1,6 +1,6 @@
 
-const CACHE_NAME = 'belezaglow-v5';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'belezaglow-v6-pro';
+const STATIC_ASSETS = [
   '/',
   '/index.html',
   'https://cdn.tailwindcss.com',
@@ -9,51 +9,61 @@ const ASSETS_TO_CACHE = [
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'
 ];
 
+// Instalação: Cache imediato de recursos críticos
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
+      return cache.addAll(STATIC_ASSETS);
     })
   );
   self.skipWaiting();
 });
 
+// Ativação: Limpeza de versões obsoletas
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
+    caches.keys().then((keys) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
+        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
       );
     })
   );
   self.clients.claim();
 });
 
+// Fetch Inteligente
 self.addEventListener('fetch', (event) => {
-  // Ignorar requisições de API do Google ou externas que não devem ser cacheadas rigidamente
-  if (event.request.url.includes('google') || event.request.url.includes('gemini')) {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // 1. APIs (Gemini, Backend): Network First
+  if (url.origin.includes('google') || url.pathname.includes('/api/')) {
+    event.respondWith(
+      fetch(request).catch(() => caches.match(request))
+    );
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request).then((fetchResponse) => {
-        return caches.open(CACHE_NAME).then((cache) => {
-          // Cachear imagens dinâmicas (portfólio) para visualização offline
-          if (event.request.url.includes('images.unsplash.com')) {
-            cache.put(event.request, fetchResponse.clone());
-          }
-          return fetchResponse;
+  // 2. Imagens de Portfólio: Stale While Revalidate
+  if (url.hostname === 'images.unsplash.com' || request.destination === 'image') {
+    event.respondWith(
+      caches.open(CACHE_NAME).then((cache) => {
+        return cache.match(request).then((cachedResponse) => {
+          const fetchPromise = fetch(request).then((networkResponse) => {
+            cache.put(request, networkResponse.clone());
+            return networkResponse;
+          });
+          return cachedResponse || fetchPromise;
         });
-      });
-    }).catch(() => {
-      if (event.request.mode === 'navigate') {
-        return caches.match('/index.html');
-      }
+      })
+    );
+    return;
+  }
+
+  // 3. Recursos Estáticos: Cache First
+  event.respondWith(
+    caches.match(request).then((response) => {
+      return response || fetch(request);
     })
   );
 });

@@ -1,10 +1,10 @@
 
 import React, { useState } from 'react';
 import { Icons } from '../constants';
-import PolicyModal from './PolicyModal';
+import TermsOfUse from './TermsOfUse';
 
 const Support: React.FC = () => {
-  const [isPolicyOpen, setIsPolicyOpen] = useState(false);
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
 
   const contacts = [
     {
@@ -107,7 +107,6 @@ const Support: React.FC = () => {
         </div>
       </div>
 
-      {/* Atendimento e Feedback Section */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-10">
          <div className="bg-white dark:bg-darkCard p-12 rounded-[50px] border border-quartz/10 luxury-shadow space-y-6">
             <h4 className="text-3xl font-serif font-black dark:text-white italic">Atendimento <span className="text-ruby">Humanizado.</span></h4>
@@ -123,36 +122,17 @@ const Support: React.FC = () => {
          </div>
       </section>
 
-      {/* Short FAQ Section */}
-      <section className="space-y-10 pt-12">
-         <h3 className="text-3xl font-serif font-bold text-center dark:text-white">Perguntas Frequentes</h3>
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {[
-              { q: "Como cancelar um agendamento?", a: "Vá em 'Minha Agenda', selecione o serviço e clique em 'Marcar como Concluído' ou entre em contato com o profissional para reagendamento." },
-              { q: "O pagamento é feito pelo app?", a: "Atualmente servimos como ponte para reserva. O pagamento é realizado diretamente ao profissional via Multicaixa ou Cash." },
-              { q: "Como me tornar um profissional Gold?", a: "Acesse seu Perfil, vá em 'Prestígio & Planos' e siga as instruções para ativação do nível Ouro." },
-              { q: "Problemas com a localização?", a: "Certifique-se que o GPS está ativo e que o app tem permissão nas configurações do seu smartphone." }
-            ].map((f, i) => (
-              <div key={i} className="bg-white dark:bg-darkCard p-8 rounded-[35px] border border-quartz/5 space-y-3">
-                <p className="text-ruby font-black uppercase text-[9px] tracking-widest">Dúvida Comum</p>
-                <h4 className="font-bold text-onyx dark:text-white">{f.q}</h4>
-                <p className="text-sm text-stone-500 leading-relaxed font-medium">{f.a}</p>
-              </div>
-            ))}
-         </div>
-      </section>
-
-      {/* FOOTER DO SUPORTE COM POLÍTICA */}
+      {/* FOOTER DO SUPORTE COM TERMOS */}
       <div className="pt-12 flex justify-center">
          <button 
-          onClick={() => setIsPolicyOpen(true)}
+          onClick={() => setIsTermsOpen(true)}
           className="px-10 py-4 bg-offwhite dark:bg-onyx border border-quartz/10 rounded-2xl text-[10px] font-black uppercase tracking-widest text-quartz hover:text-ruby hover:border-ruby transition-all"
          >
-            Ver Política de Uso Completa
+            Ver Termos de Uso Glow Elite
          </button>
       </div>
 
-      {isPolicyOpen && <PolicyModal onClose={() => setIsPolicyOpen(false)} />}
+      {isTermsOpen && <TermsOfUse onClose={() => setIsTermsOpen(false)} />}
     </div>
   );
 };

@@ -1,32 +1,25 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Icons, COLORS } from '../constants';
+import React, { useState, useMemo } from 'react';
+import { Icons } from '../constants';
 import { getBeautyRecommendations } from '../services/geminiService';
 import { MOCK_PROVIDERS } from '../data/mockProviders';
-import { ProviderProfile } from '../types';
+import { ProviderProfile, UserRole } from '../types';
+import { GlowCarousel } from './GlowCarousel';
 
 interface HomeProps {
   onStartExploring: (view?: string) => void;
   onSelectProvider?: (p: ProviderProfile) => void;
+  userRole?: UserRole;
 }
 
-const Home: React.FC<HomeProps> = ({ onStartExploring, onSelectProvider }) => {
+const Home: React.FC<HomeProps> = ({ onStartExploring, onSelectProvider, userRole }) => {
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiResponse, setAiResponse] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [currentSlide, setCurrentSlide] = useState(0);
 
   const recommendedProviders = useMemo(() => {
     return MOCK_PROVIDERS.filter(p => p.planTier === 'GOLD' || p.planTier === 'ANNUAL' || p.planTier === 'SILVER');
   }, []);
-
-  useEffect(() => {
-    if (recommendedProviders.length === 0) return;
-    const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % recommendedProviders.length);
-    }, 5000);
-    return () => clearInterval(timer);
-  }, [recommendedProviders.length]);
 
   const handleAiConsult = async () => {
     if (!aiPrompt) return;
@@ -75,24 +68,35 @@ const Home: React.FC<HomeProps> = ({ onStartExploring, onSelectProvider }) => {
              </h1>
           </div>
           
-          <div className="flex flex-col md:flex-row gap-4 md:gap-6 pt-4 w-full md:w-auto px-10 md:px-0">
-            <button 
-              onClick={() => onStartExploring('discover')}
-              className="group relative px-10 py-5 md:px-12 md:py-7 bg-ruby text-white rounded-[20px] md:rounded-[25px] font-black uppercase tracking-widest text-[10px] shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-4 overflow-hidden"
-            >
-              <span className="relative z-10 flex items-center gap-4"><Icons.Search /> Encontre Profissionais</span>
-            </button>
-            <button 
-              onClick={() => onStartExploring('map')}
-              className="px-10 py-5 md:px-12 md:py-7 bg-white/10 backdrop-blur-md text-white rounded-[20px] md:rounded-[25px] font-black uppercase tracking-widest text-[10px] shadow-2xl hover:bg-white hover:text-onyx transition-all flex items-center justify-center gap-4 border border-white/20"
-            >
-              <Icons.Map /> Localizar no mapa
-            </button>
+          <div className="flex flex-col items-center md:items-start gap-6 pt-4 w-full md:w-auto">
+            <div className="flex flex-col md:flex-row gap-4 md:gap-6 w-full md:w-auto px-10 md:px-0">
+              <button 
+                onClick={() => onStartExploring('discover')}
+                className="group relative px-10 py-5 md:px-12 md:py-7 bg-ruby text-white rounded-[20px] md:rounded-[25px] font-black uppercase tracking-widest text-[10px] shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-4 overflow-hidden"
+              >
+                <span className="relative z-10 flex items-center gap-4"><Icons.Search /> Encontre Profissionais</span>
+              </button>
+              <button 
+                onClick={() => onStartExploring('map')}
+                className="px-10 py-5 md:px-12 md:py-7 bg-white/10 backdrop-blur-md text-white rounded-[20px] md:rounded-[25px] font-black uppercase tracking-widest text-[10px] shadow-2xl hover:bg-white hover:text-onyx transition-all flex items-center justify-center gap-4 border border-white/20"
+              >
+                <Icons.Map /> Localizar no mapa
+              </button>
+            </div>
+
+            {userRole === UserRole.SALON && (
+              <button 
+                onClick={() => onStartExploring('management')}
+                className="px-10 py-5 md:px-12 md:py-7 bg-gold text-onyx rounded-[20px] md:rounded-[25px] font-black uppercase tracking-widest text-[10px] shadow-2xl hover:bg-ruby hover:text-white transition-all flex items-center justify-center gap-4 border border-gold/20 animate-fade-in w-[calc(100%-5rem)] md:w-full"
+              >
+                <Icons.Chart /> Dashboard Profissional Glow Maison
+              </button>
+            )}
           </div>
         </div>
       </section>
 
-      {/* 2. SEASON HIGHLIGHTS - CARROSSEL INFINITO */}
+      {/* 2. SEASON HIGHLIGHTS - UTILIZANDO O NOVO GLOW CAROUSEL */}
       <section className="max-w-7xl mx-auto px-4 space-y-12">
         <div className="flex flex-col gap-2">
            <p className="text-ruby text-[10px] font-black uppercase tracking-[0.5em] ml-2">Season Highlights</p>
@@ -102,72 +106,59 @@ const Home: React.FC<HomeProps> = ({ onStartExploring, onSelectProvider }) => {
            </div>
         </div>
 
-        <div className="relative h-[450px] md:h-[600px] overflow-hidden rounded-[50px] bg-onyx luxury-shadow border border-white/5">
-           {recommendedProviders.length > 0 ? (
-             <div className="absolute inset-0">
-               {recommendedProviders.map((provider, idx) => (
-                 <div 
-                   key={provider.id}
-                   className={`absolute inset-0 transition-all duration-1000 ease-in-out flex flex-col md:flex-row ${idx === currentSlide ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-95 z-0'}`}
-                 >
-                   {/* Visual Area */}
-                   <div className="relative md:w-2/3 h-full overflow-hidden">
-                     <img src={provider.portfolio[0]} className="w-full h-full object-cover grayscale-[10%] group-hover:grayscale-0 transition-all duration-1000" alt={provider.businessName} />
-                     <div className="absolute inset-0 bg-gradient-to-r from-onyx/90 via-onyx/30 to-transparent"></div>
-                     
-                     <div className="absolute top-8 left-8 flex items-center gap-3 px-6 py-3 bg-white/10 backdrop-blur-xl rounded-full border border-white/20">
-                        {isSalon(provider) ? (
-                          <div className="flex items-center gap-3 text-white">
-                            <Icons.Home /> <span className="text-[10px] font-black uppercase tracking-widest">Salão de Elite</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-3 text-gold">
-                            <Icons.User /> <span className="text-[10px] font-black uppercase tracking-widest text-white">Profissional Pro</span>
-                          </div>
-                        )}
+        {/* Fix: Explicitly provide ProviderProfile type to GlowCarousel to resolve 'unknown' type inference errors */}
+        <GlowCarousel<ProviderProfile> 
+          items={recommendedProviders}
+          renderItem={(provider, isActive) => (
+            <div className="flex flex-col md:flex-row h-full">
+              {/* Visual Area */}
+              <div className="relative md:w-2/3 h-full overflow-hidden">
+                <img 
+                  src={provider.portfolio[0]} 
+                  className={`w-full h-full object-cover transition-transform duration-[5s] ${isActive ? 'scale-110' : 'scale-100'}`} 
+                  alt={provider.businessName} 
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-onyx/90 via-onyx/30 to-transparent"></div>
+                
+                <div className="absolute top-8 left-8 flex items-center gap-3 px-6 py-3 bg-white/10 backdrop-blur-xl rounded-full border border-white/20">
+                   {isSalon(provider) ? (
+                     <div className="flex items-center gap-3 text-white">
+                       <Icons.Home /> <span className="text-[10px] font-black uppercase tracking-widest">Salão de Elite</span>
                      </div>
-                   </div>
+                   ) : (
+                     <div className="flex items-center gap-3 text-gold">
+                       <Icons.User /> <span className="text-[10px] font-black uppercase tracking-widest text-white">Profissional Pro</span>
+                     </div>
+                   )}
+                </div>
+              </div>
 
-                   {/* Content Area */}
-                   <div className="md:w-1/3 bg-onyx dark:bg-darkCard p-10 md:p-16 flex flex-col justify-center space-y-8 relative">
-                      <div className="space-y-4">
-                         <h4 className="text-4xl md:text-6xl font-serif font-black text-white italic leading-tight tracking-tighter">{provider.businessName}</h4>
-                         <p className="text-quartz text-sm md:text-base font-medium leading-relaxed line-clamp-4 italic opacity-80">"{provider.bio}"</p>
-                      </div>
-
-                      <div className="flex flex-col gap-6 pt-8 border-t border-white/10">
-                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-gold">
-                               <Icons.Star filled />
-                               <span className="text-2xl font-black">{provider.rating}</span>
-                            </div>
-                            <div className="text-[10px] font-black text-quartz/50 uppercase tracking-widest">Destaque Verificado</div>
-                         </div>
-                         <button 
-                           onClick={(e) => handleProviderClick(provider, e)}
-                           className="w-full py-6 bg-ruby text-white rounded-3xl text-[10px] font-black uppercase tracking-[0.3em] hover:bg-gold hover:text-onyx transition-all shadow-2xl active:scale-95"
-                         >
-                           {isSalon(provider) ? 'Explorar Salão' : 'Solicitar Reserva'}
-                         </button>
-                      </div>
-                   </div>
+              {/* Content Area */}
+              <div className="md:w-1/3 bg-onyx dark:bg-darkCard p-10 md:p-16 flex flex-col justify-center space-y-8 relative">
+                 <div className="space-y-4">
+                    <h4 className="text-4xl md:text-6xl font-serif font-black text-white italic leading-tight tracking-tighter">{provider.businessName}</h4>
+                    <p className="text-quartz text-sm md:text-base font-medium leading-relaxed line-clamp-4 italic opacity-80">"{provider.bio}"</p>
                  </div>
-               ))}
 
-               <div className="absolute bottom-10 left-10 md:left-auto md:right-10 z-20 flex gap-4">
-                  {recommendedProviders.map((_, i) => (
+                 <div className="flex flex-col gap-6 pt-8 border-t border-white/10">
+                    <div className="flex items-center justify-between">
+                       <div className="flex items-center gap-2 text-gold">
+                          <Icons.Star filled />
+                          <span className="text-2xl font-black">{provider.rating}</span>
+                       </div>
+                       <div className="text-[10px] font-black text-quartz/50 uppercase tracking-widest">Destaque Verificado</div>
+                    </div>
                     <button 
-                      key={i} 
-                      onClick={() => setCurrentSlide(i)}
-                      className={`h-1.5 rounded-full transition-all duration-700 ${i === currentSlide ? 'w-16 bg-ruby' : 'w-4 bg-white/20'}`}
-                    />
-                  ))}
-               </div>
-             </div>
-           ) : (
-             <div className="flex items-center justify-center h-full text-quartz italic">Preparando curadoria elite...</div>
-           )}
-        </div>
+                      onClick={(e) => handleProviderClick(provider, e)}
+                      className="w-full py-6 bg-ruby text-white rounded-3xl text-[10px] font-black uppercase tracking-[0.3em] hover:bg-gold hover:text-onyx transition-all shadow-2xl active:scale-95"
+                    >
+                      {isSalon(provider) ? 'Explorar Salão' : 'Solicitar Reserva'}
+                    </button>
+                 </div>
+              </div>
+            </div>
+          )}
+        />
       </section>
 
       {/* 3. EXPLORAR TODOS OS TALENTOS - GRELHA GERAL */}

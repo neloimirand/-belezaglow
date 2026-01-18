@@ -1,34 +1,37 @@
 
 {
-  "name": "Beleza Glow - Elite Marketplace",
+  "name": "Beleza Glow - Estética & Luxo",
   "short_name": "BelezaGlow",
   "description": "Ecossistema digital de serviços de beleza de elite em Angola.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0F0F14",
-  "theme_color": "#9D174D",
+  "theme_color": "#D4AF37",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/3138/3138316.png",
+      "src": "https://images.unsplash.com/photo-1596462502278-27bfac4033c8?q=80&w=1000",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/3138/3138316.png",
+      "src": "https://images.unsplash.com/photo-1596462502278-27bfac4033c8?q=80&w=1000",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     }
   ],
-  "categories": ["beauty", "lifestyle", "business"],
-  "screenshots": [
+  "shortcuts": [
     {
-      "src": "https://images.unsplash.com/photo-1596462502278-27bfac4033c8?q=80&w=1000",
-      "sizes": "1000x2000",
-      "type": "image/webp",
-      "form_factor": "narrow"
+      "name": "Radar Live",
+      "short_name": "Mapa",
+      "url": "/?tab=map"
+    },
+    {
+      "name": "AI Concierge",
+      "short_name": "Glow AI",
+      "url": "/?tab=concierge"
     }
   ]
 }

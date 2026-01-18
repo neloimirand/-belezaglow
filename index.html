@@ -3,16 +3,24 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Beleza Glow - Elite Beauty Marketplace</title>
     
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#9D174D">
+    <meta name="theme-color" content="#0F0F14">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="BelezaGlow">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3138/3138316.png">
+    <meta name="apple-mobile-web-app-title" content="Beleza Glow">
+    
+    <!-- iOS Icons & Splash - Estilizados com a Identidade de Luxo -->
+    <link rel="apple-touch-icon" href="https://img.icons8.com/color/512/000000/diamond.png">
+    <link rel="apple-touch-startup-image" href="https://images.unsplash.com/photo-1596462502278-27bfac4033c8?q=80&w=1000">
+    
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://images.unsplash.com">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,900&family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
@@ -45,7 +53,8 @@
           font-family: 'Inter', sans-serif; 
           transition: background-color 0.5s ease, color 0.5s ease;
           -webkit-font-smoothing: antialiased;
-          overscroll-behavior-y: contain; /* Evita pull-to-refresh em PWAs */
+          overscroll-behavior-y: contain;
+          padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
         .dark body {
           background-color: #0F0F14;
@@ -64,9 +73,6 @@
         .ruby-shadow {
           box-shadow: 0 15px 35px -5px rgba(157, 23, 77, 0.4);
         }
-        .gold-glow {
-          box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
-        }
         .animate-fade-in {
           animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
@@ -80,26 +86,13 @@
           -webkit-backdrop-filter: blur(20px);
           border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .glass-light {
-          background: rgba(255, 251, 252, 0.85);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border: 1px solid rgba(15, 15, 20, 0.05);
-        }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #9D174D; border-radius: 10px; }
         
-        .theme-transition * {
-          transition: background-color 0.5s ease, border-color 0.5s ease, color 0.5s ease !important;
-        }
-
-        /* Fix para iOS Safe Areas */
-        @supports (padding: env(safe-area-inset-bottom)) {
-          .pb-safe {
-            padding-bottom: env(safe-area-inset-bottom);
-          }
-        }
+        /* Safe Area Helper */
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .pt-safe { padding-top: env(safe-area-inset-top); }
     </style>
 <script type="importmap">
 {
@@ -112,16 +105,18 @@
 }
 </script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<!-- PDF Generator Engine -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body class="text-onyx bg-offwhite dark:bg-onyx dark:text-offwhite">
     <div id="root"></div>
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(registration => {
-            console.log('SW registered: ', registration);
-          }).catch(registrationError => {
-            console.log('SW registration failed: ', registrationError);
+          navigator.serviceWorker.register('/sw.js').then(reg => {
+            console.log('Glow PWA Engine Active');
+          }).catch(err => {
+            console.log('PWA Offline Engine Failure', err);
           });
         });
       }

@@ -11,10 +11,25 @@ interface LayoutProps {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
   onLogout?: () => void;
+  unreadNotifsCount?: number;
+  onToggleNotifs?: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, role, theme, toggleTheme, onLogout }) => {
+const Layout: React.FC<LayoutProps> = ({ 
+  children, 
+  activeTab, 
+  onTabChange, 
+  role, 
+  theme, 
+  toggleTheme, 
+  onLogout,
+  unreadNotifsCount = 0,
+  onToggleNotifs
+}) => {
   const isBusinessUser = role === UserRole.PROFESSIONAL || role === UserRole.SALON;
+  const isSalon = role === UserRole.SALON;
+  const isPro = role === UserRole.PROFESSIONAL;
+  const isAdmin = role === UserRole.ADMIN;
 
   return (
     <div className="flex flex-col min-h-screen bg-offwhite dark:bg-onyx pb-32 md:pb-0 md:pl-80 transition-colors duration-700">
@@ -26,101 +41,108 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, role,
             onClick={() => onTabChange('home')}
             className="group text-left transition-all active:scale-95"
           >
-            <h1 className="text-3xl font-serif font-black text-onyx dark:text-blue-600 tracking-tighter flex items-center gap-2 transition-colors duration-500">
+            <h1 className="text-3xl font-serif font-black text-onyx dark:text-white tracking-tighter flex items-center gap-2 transition-colors duration-500">
               GLOW <span className="font-normal italic">ELITE</span>
             </h1>
             <p className="text-[10px] text-quartz dark:text-quartz/50 uppercase font-black tracking-[0.5em] mt-4 group-hover:tracking-[0.7em] transition-all">Angola Concierge</p>
           </button>
 
-          <button 
-            onClick={toggleTheme}
-            className="flex items-center gap-4 px-6 py-4 bg-offwhite dark:bg-onyx rounded-[25px] border border-quartz/20 dark:border-white/10 hover:border-ruby transition-all group w-full shadow-sm"
-          >
-            <div className="text-ruby group-hover:rotate-12 transition-transform">
-              {theme === 'light' ? 
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg> : 
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line></svg>
-              }
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-onyx dark:text-white">Mudar para {theme === 'light' ? 'Noite' : 'Dia'}</span>
-          </button>
+          <div className="flex gap-3">
+            <button 
+              onClick={toggleTheme}
+              className="flex-1 flex items-center justify-center h-16 bg-offwhite dark:bg-onyx rounded-2xl border border-quartz/20 dark:border-white/10 hover:border-ruby transition-all group shadow-sm"
+            >
+              <div className="text-ruby group-hover:rotate-12 transition-transform">
+                {theme === 'light' ? 
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg> : 
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line></svg>
+                }
+              </div>
+            </button>
+            <button 
+              onClick={onToggleNotifs}
+              className="relative flex-1 flex items-center justify-center h-16 bg-offwhite dark:bg-onyx rounded-2xl border border-quartz/20 dark:border-white/10 hover:border-ruby transition-all group shadow-sm text-quartz"
+            >
+              <Icons.Bell filled={unreadNotifsCount > 0} />
+              {unreadNotifsCount > 0 && (
+                <div className="absolute top-3 right-3 w-3 h-3 bg-ruby rounded-full border-2 border-white dark:border-darkCard animate-pulse shadow-lg"></div>
+              )}
+            </button>
+          </div>
         </div>
         
-        <nav className="flex-1 px-8 space-y-3 mt-4">
+        <nav className="flex-1 px-8 space-y-3 mt-4 overflow-y-auto scrollbar-hide pb-10">
+          {isAdmin && (
+            <div className="mb-8 space-y-3">
+               <p className="text-[10px] font-black uppercase tracking-[0.3em] px-6 mb-4 text-gold">Controle Mestre</p>
+               <NavItem icon={<Icons.Settings />} label="Governança ADM" active={activeTab === 'admin'} onClick={() => onTabChange('admin')} />
+            </div>
+          )}
+
           <NavItem icon={<Icons.Star filled={activeTab === 'home'} />} label="Início" active={activeTab === 'home'} onClick={() => onTabChange('home')} />
-          <NavItem icon={<Icons.Map />} label="Encontrar no Mapa" active={activeTab === 'map'} onClick={() => onTabChange('map')} />
-          <NavItem icon={<Icons.Search />} label="Encontre Profissionais" active={activeTab === 'discover'} onClick={() => onTabChange('discover')} />
-          <NavItem icon={<Icons.Calendar />} label="Minha Agenda" active={activeTab === 'bookings'} onClick={() => onTabChange('bookings')} />
+          <NavItem icon={<Icons.Gallery />} label="Galeria de Elite" active={activeTab === 'gallery_discover'} onClick={() => onTabChange('gallery_discover')} />
+          <NavItem icon={<div className="text-ruby"><Icons.Star filled /></div>} label="Glow Concierge" active={activeTab === 'concierge'} onClick={() => onTabChange('concierge')} />
+          <NavItem icon={<Icons.Map />} label="Radar Global" active={activeTab === 'map'} onClick={() => onTabChange('map')} />
+          <NavItem icon={<Icons.Calendar />} label="Meus Rituais" active={activeTab === 'bookings'} onClick={() => onTabChange('bookings')} />
           
-          <div className="pt-12">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] px-6 mb-6 text-quartz/60">Business Suite</p>
-            {role === UserRole.ADMIN && <NavItem icon={<Icons.Settings />} label="Master Control" active={activeTab === 'admin'} onClick={() => onTabChange('admin')} />}
-            {isBusinessUser && <NavItem icon={<Icons.Chart />} label="Console Pro" active={activeTab === 'management'} onClick={() => onTabChange('management')} />}
-            <NavItem icon={<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>} label="Central de Apoio" active={activeTab === 'support'} onClick={() => onTabChange('support')} />
-            
-            {onLogout && (
-               <button 
-                onClick={onLogout}
-                className="w-full flex items-center gap-5 px-8 py-5 mt-4 rounded-[30px] transition-all duration-500 text-quartz hover:bg-ruby/5 hover:text-ruby group"
-               >
-                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
-                 <span className="text-[11px] font-black uppercase tracking-[0.2em]">Sair</span>
-               </button>
-            )}
+          {!isBusinessUser && !isAdmin && (
+            <>
+              <NavItem icon={<div className="text-gold"><Icons.Star filled /></div>} label="Clube Glow" active={activeTab === 'points'} onClick={() => onTabChange('points')} />
+              <NavItem icon={<Icons.Coupon />} label="Benefícios" active={activeTab === 'coupons'} onClick={() => onTabChange('coupons')} />
+            </>
+          )}
+
+          {isBusinessUser && (
+            <div className="pt-8 border-t border-quartz/10 mt-8 space-y-3">
+              <p className="text-ruby text-[10px] font-black uppercase tracking-[0.3em] px-6 mb-4">{isSalon ? 'Ferramentas Maison' : 'Ferramentas Artista'}</p>
+              <NavItem icon={<Icons.Chart />} label={isSalon ? 'Console Maison' : 'Dashboard Artista'} active={activeTab === 'management' || (isPro && activeTab === 'home')} onClick={() => onTabChange(isSalon ? 'management' : 'home')} />
+              <NavItem icon={<Icons.Award />} label="Glow Pro Experience" active={activeTab === 'plans_sales'} onClick={() => onTabChange('plans_sales')} />
+            </div>
+          )}
+          
+          <div className="pt-8">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] px-6 mb-6 text-quartz/60">Canal Directo</p>
+            <NavItem icon={<Icons.Message />} label="Mensagens VIP" active={activeTab === 'messages'} onClick={() => onTabChange('messages')} />
+            <NavItem icon={<Icons.User />} label="Meu Perfil" active={activeTab === 'profile'} onClick={() => onTabChange('profile')} />
           </div>
         </nav>
 
         <div className="p-10 border-t border-quartz/10 dark:border-white/5">
-           <div 
-            onClick={() => onTabChange('profile')}
-            className={`bg-offwhite dark:bg-onyx p-5 rounded-[35px] border border-quartz/20 dark:border-white/10 flex items-center gap-5 group cursor-pointer hover:bg-ruby hover:text-white transition-all duration-700 ${activeTab === 'profile' ? 'ring-4 ring-ruby/20 bg-ruby text-white shadow-xl' : ''}`}
-           >
-              <div className="w-14 h-14 rounded-full overflow-hidden shadow-2xl border-2 border-white transition-transform group-hover:scale-90 group-hover:border-white/50">
-                <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop" className="w-full h-full object-cover" />
-              </div>
-              <div className="overflow-hidden">
-                <p className="text-sm font-black truncate dark:text-white group-hover:text-white">Ana Luanda</p>
-                <p className="text-[9px] text-ruby dark:text-gold font-bold uppercase tracking-widest mt-0.5 group-hover:text-white">Membro Ouro</p>
-              </div>
-           </div>
+           <button 
+            onClick={onLogout}
+            className="w-full py-4 rounded-2xl border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
+           >Sair do Ecossistema</button>
         </div>
       </aside>
 
-      <header className="md:hidden flex flex-col items-center justify-center p-8 bg-white/95 dark:bg-onyx/98 backdrop-blur-3xl sticky top-0 z-40 border-b border-quartz/10 dark:border-white/5 transition-all gap-6 shadow-sm">
-        <button onClick={() => onTabChange('home')} className="active:scale-90 transition-transform">
-          <h1 className="text-3xl font-serif font-black text-onyx dark:text-blue-600 tracking-tighter transition-colors duration-500">
-            GLOW <span className="font-normal italic">ELITE</span>
-          </h1>
-          <div className="w-8 h-[2px] bg-ruby/30 mx-auto mt-1 rounded-full"></div>
-        </button>
-        <div className="flex items-center gap-8">
-          <button onClick={toggleTheme} className="p-4 bg-offwhite dark:bg-darkCard rounded-2xl text-ruby border border-quartz/10 dark:border-white/10 shadow-sm active:scale-90 transition-all">
-            {theme === 'light' ? 
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg> : 
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line></svg>
-            }
-          </button>
-          <div onClick={() => onTabChange('profile')} className="w-12 h-12 rounded-full border-2 border-ruby/40 p-0.5 shadow-2xl overflow-hidden transition-all active:scale-90 ring-4 ring-ruby/5">
-            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop" className="w-full h-full rounded-full object-cover" />
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 max-w-[1600px] mx-auto w-full p-6 md:p-16 animate-fade-in">
-        {children}
-      </main>
-
+      {/* MOBILE NAV BOTTOM */}
       <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[94%] h-22 bg-onyx/95 dark:bg-darkCard/98 backdrop-blur-3xl rounded-[40px] flex items-center justify-around px-2 z-50 shadow-[0_25px_60px_rgba(0,0,0,0.5)] border border-white/10">
-        <NavButton active={activeTab === 'home'} onClick={() => onTabChange('home')} icon={<Icons.Star filled={activeTab === 'home'} />} label="Início" />
-        <NavButton active={activeTab === 'discover'} onClick={() => onTabChange('discover')} icon={<Icons.Search />} label="Profissionais" />
-        {isBusinessUser ? (
-           <button onClick={() => onTabChange('management')} className={`-mt-10 w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 ${activeTab === 'management' ? 'bg-gold text-onyx ring-4 ring-gold/20' : 'bg-ruby text-white'}`}><Icons.Briefcase /></button>
+        <NavButton active={activeTab === 'home'} onClick={() => onTabChange('home')} icon={<Icons.Home />} label="Home" />
+        <NavButton active={activeTab === 'map'} onClick={() => onTabChange('map')} icon={<Icons.Map />} label="Radar" />
+        
+        {isAdmin ? (
+          <button 
+            onClick={() => onTabChange('admin')} 
+            className={`-mt-10 w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 bg-gold text-onyx ring-4 ring-gold/20`}
+          >
+            <Icons.Settings />
+          </button>
         ) : (
-          <NavButton active={activeTab === 'map'} onClick={() => onTabChange('map')} icon={<Icons.Map />} label="Mapa" />
+          <button 
+            onClick={() => onTabChange(isSalon ? 'management' : isPro ? 'home' : 'concierge')} 
+            className={`-mt-10 w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 ${activeTab === 'concierge' || (isPro && activeTab === 'home') ? 'bg-gold text-onyx ring-4 ring-gold/20' : 'bg-ruby text-white'}`}
+          >
+            {isSalon ? <Icons.Chart /> : isPro ? <Icons.Chart /> : <Icons.Star filled />}
+          </button>
         )}
-        <NavButton active={activeTab === 'bookings'} onClick={() => onTabChange('bookings')} icon={<Icons.Calendar />} label="Agenda" />
+
+        <NavButton active={activeTab === 'messages'} onClick={() => onTabChange('messages')} icon={<Icons.Message />} label="Chat" />
         <NavButton active={activeTab === 'profile'} onClick={() => onTabChange('profile')} icon={<Icons.User />} label="Perfil" />
       </nav>
+
+      <main className="flex-1 max-w-[1600px] mx-auto w-full p-6 pt-24 md:p-16 animate-fade-in overflow-x-hidden">
+        {children}
+      </main>
     </div>
   );
 };

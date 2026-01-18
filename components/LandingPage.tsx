@@ -1,191 +1,262 @@
 
 import React, { useState } from 'react';
 import { Icons } from '../constants';
-import PolicyModal from './PolicyModal';
+import TermsOfUse from './TermsOfUse';
+import GlowImage from './GlowImage';
+import TeamSection from './TeamSection';
 
 interface LandingPageProps {
   onStart: () => void;
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onStart }) => {
-  const [isPolicyOpen, setIsPolicyOpen] = useState(false);
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
+  const [activeSegment, setActiveSegment] = useState<'client' | 'pro' | 'salon'>('client');
 
   return (
-    <div className="fixed inset-0 z-[8000] bg-onyx overflow-y-auto scrollbar-hide text-white selection:bg-ruby selection:text-white font-sans">
+    <div className="relative min-h-screen bg-offwhite dark:bg-onyx overflow-x-hidden selection:bg-ruby selection:text-white">
       
-      {/* SEÇÃO 1: HERO CINEMATOGRÁFICO */}
-      <section className="relative h-screen w-full flex items-center justify-center overflow-hidden">
+      {/* 1. HERO SECTION */}
+      <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden px-6 pt-20 pb-32">
         <div className="absolute inset-0 z-0">
-           <img 
-            src="https://images.unsplash.com/photo-1596462502278-27bfac4033c8?q=80&w=2000" 
-            className="w-full h-full object-cover grayscale opacity-40 scale-110 animate-ken-burns" 
-            alt="Beleza de Elite" 
-           />
-           {/* Gradiente de Profundidade */}
-           <div className="absolute inset-0 bg-gradient-to-b from-onyx/95 via-transparent to-onyx"></div>
-           <div className="absolute inset-0 bg-gradient-to-r from-onyx/40 via-transparent to-onyx/40"></div>
+          <GlowImage 
+            src="https://images.unsplash.com/photo-1562322140-8baeececf3df?q=80&w=2000" 
+            alt="Luxury Beauty" 
+            variant="hero"
+            priority={true}
+            className="w-full h-full"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-onyx/40 via-transparent to-onyx"></div>
         </div>
 
-        <div className="relative z-10 px-6 text-center space-y-12 max-w-6xl">
-           <div className="space-y-6 animate-fade-in-up">
-              <div className="flex items-center justify-center gap-6 mb-8">
-                <span className="h-[1px] w-20 bg-gold/40"></span>
-                <p className="text-gold text-[10px] font-black uppercase tracking-[1em]">O Padrão Ouro da Beleza</p>
-                <span className="h-[1px] w-20 bg-gold/40"></span>
-              </div>
-              
-              <h1 className="text-6xl md:text-[13rem] font-serif font-black leading-[0.75] tracking-tighter italic">
-                Sedução. <br /> Poder. <br /> <span className="text-ruby drop-shadow-[0_0_40px_rgba(157,23,77,0.5)]">Glow.</span>
-              </h1>
-           </div>
-           
-           <p className="text-quartz text-xl md:text-3xl font-light max-w-3xl mx-auto leading-relaxed italic opacity-80 animate-fade-in delay-500">
-             Não é apenas um agendamento. É a celebração da sua identidade em seu estado mais sublime.
-           </p>
+        <div className="relative z-10 max-w-4xl w-full text-center space-y-8 animate-fade-in">
+          <div className="space-y-4">
+            <div className="flex items-center justify-center gap-3">
+              <div className="w-8 h-[1px] bg-gold/50"></div>
+              <p className="text-gold text-[9px] font-black uppercase tracking-[0.6em]">Ecossistema de Elite</p>
+              <div className="w-8 h-[1px] bg-gold/50"></div>
+            </div>
+            <h1 className="text-5xl md:text-9xl font-serif font-black text-white leading-tight md:leading-[0.85] tracking-tighter italic">
+              BELEZA <br />
+              <span className="text-ruby drop-shadow-[0_0_30px_rgba(157,23,77,0.4)] uppercase">GLOW</span>
+            </h1>
+          </div>
+          
+          <p className="text-quartz text-base md:text-2xl font-medium max-w-2xl mx-auto leading-relaxed px-4">
+            A solução definitiva em estética disponível 24/24. Conectando o desejo à realização em um único toque.
+          </p>
 
-           <div className="pt-12 animate-fade-in delay-1000">
-              <button 
+          <div className="flex flex-col items-center gap-4 pt-6">
+             <button 
                 onClick={onStart}
-                className="group relative px-20 py-10 bg-white text-onyx rounded-full font-black uppercase tracking-[0.6em] text-[11px] shadow-[0_0_70px_rgba(255,255,255,0.15)] hover:bg-ruby hover:text-white transition-all duration-1000 flex items-center gap-10 mx-auto active:scale-95 border border-white/10"
+                className="w-full md:w-auto px-12 py-6 bg-ruby text-white rounded-full font-black uppercase tracking-[0.3em] text-[10px] shadow-2xl hover:scale-105 transition-all"
+             >
+                Explorar Agora
+             </button>
+             <div className="flex items-center gap-3 bg-white/5 backdrop-blur-xl border border-white/10 px-6 py-2.5 rounded-full">
+                <div className="w-2 h-2 bg-emerald rounded-full animate-ping"></div>
+                <span className="text-[8px] text-white font-black uppercase tracking-widest">Sincronização Live Luanda</span>
+             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 2. O PROBLEMA (DOR E CONTRASTE) */}
+      <section className="py-24 px-6 bg-white dark:bg-darkCard">
+        <div className="max-w-4xl mx-auto text-center space-y-16">
+          <div className="space-y-4">
+            <h2 className="text-3xl md:text-6xl font-serif font-black dark:text-white italic leading-tight">
+              Sua agenda não deveria <br /> ser um <span className="text-ruby underline decoration-ruby/20">obstáculo.</span>
+            </h2>
+            <p className="text-stone-500 dark:text-quartz text-sm italic">Gestão confusa, perda de tempo e clientes sem resposta acabam aqui.</p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 text-left max-w-md mx-auto">
+            <PainPoint icon="✕" text="Dificuldade para encontrar especialistas de confiança." />
+            <PainPoint icon="✕" text="Conflitos de horários e gestão manual ineficiente." />
+            <PainPoint icon="✕" text="Falta de visibilidade e controle financeiro real." />
+          </div>
+
+          <div className="relative pt-10 group">
+             <div className="max-w-md mx-auto overflow-hidden">
+                <GlowImage 
+                  src="https://images.unsplash.com/photo-1595476108010-b4d1f8717358?q=80&w=1000" 
+                  alt="Organization Gap" 
+                  variant="prestige"
+                  className="aspect-[4/3] w-full"
+                />
+             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. A EQUIPE (NOVO COMPONENTE) */}
+      <TeamSection />
+
+      {/* 4. A SOLUÇÃO (UNIFICAÇÃO) */}
+      <section className="py-24 bg-onyx text-white relative overflow-hidden px-6">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-20 pointer-events-none">
+           <div className="absolute top-0 left-0 w-96 h-96 bg-ruby rounded-full blur-[150px]"></div>
+           <div className="absolute bottom-0 right-0 w-96 h-96 bg-gold rounded-full blur-[150px]"></div>
+        </div>
+
+        <div className="max-w-4xl mx-auto relative z-10 text-center space-y-16">
+          <div className="space-y-4">
+            <h2 className="text-4xl md:text-8xl font-serif font-black italic tracking-tighter">O Universo <span className="text-gold">Glow.</span></h2>
+            <p className="text-quartz text-base md:text-xl">Três pilares unidos em uma tecnologia de luxo.</p>
+          </div>
+
+          <div className="flex flex-col gap-10">
+            <SolutionCard 
+              title="Marketplace Global" 
+              desc="Radar Live integrado com geolocalização em tempo real para busca instantânea." 
+              icon={<Icons.Map />}
+            />
+            <SolutionCard 
+              title="Concierge Digital" 
+              desc="Inteligência Artificial que entende sua necessidade e sugere o ritual perfeito." 
+              icon={<Icons.Star filled />}
+            />
+            <SolutionCard 
+              title="Cofre Financeiro" 
+              desc="Gestão de pagamentos, comissões e faturamento com total transparência." 
+              icon={<Icons.Dollar />}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* 5. BENEFÍCIOS SEGMENTADOS */}
+      <section className="py-24 px-6 bg-offwhite dark:bg-onyx">
+        <div className="max-w-4xl mx-auto space-y-12">
+          <h3 className="text-center text-3xl font-serif font-black dark:text-white italic">Escolha seu <span className="text-ruby">Papel.</span></h3>
+          
+          <div className="flex justify-center gap-2 overflow-x-auto pb-4 scrollbar-hide">
+            {(['client', 'pro', 'salon'] as const).map(s => (
+              <button 
+                key={s}
+                onClick={() => setActiveSegment(s)}
+                className={`shrink-0 px-6 py-4 rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all ${activeSegment === s ? 'bg-ruby text-white shadow-xl' : 'bg-white dark:bg-darkCard text-quartz border border-quartz/10'}`}
               >
-                Começar Agora
-                <div className="w-12 h-12 bg-onyx/5 rounded-full flex items-center justify-center group-hover:bg-white/20 transition-all rotate-0 group-hover:rotate-45">
-                   <Icons.ChevronRight />
-                </div>
+                {s === 'client' ? 'Clientes' : s === 'pro' ? 'Artistas' : 'Salões'}
               </button>
-           </div>
-        </div>
+            ))}
+          </div>
 
-        {/* Detalhes de Rodapé Hero */}
-        <div className="absolute bottom-12 left-12 hidden md:flex flex-col gap-4 opacity-40 text-[9px] font-black uppercase tracking-[0.5em]">
-           <span className="text-gold">Luanda • Talatona</span>
-           <span className="h-[1px] w-12 bg-white"></span>
-           <span>Angola Prestige</span>
+          <div className="bg-white dark:bg-darkCard p-8 rounded-[50px] shadow-2xl border border-quartz/5 transition-all animate-fade-in">
+             {activeSegment === 'client' && (
+               <SegmentView 
+                 title="MEMBRO ELITE" 
+                 price="Livre"
+                 features={['Radar Live 24/7', 'Chat SMS Direto', 'Favoritos e Histórico', 'Pagamento Seguro']}
+                 image="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=600"
+               />
+             )}
+             {activeSegment === 'pro' && (
+               <SegmentView 
+                 title="ARTISTA PRO" 
+                 price="1.500 Kz"
+                 features={['Agenda Inteligente', 'Perfil no Radar', 'Glow Ads Incluído', 'Controle de Ganhos']}
+                 image="https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=600"
+               />
+             )}
+             {activeSegment === 'salon' && (
+               <SegmentView 
+                 title="MAISON GLOW" 
+                 price="2.000 Kz"
+                 features={['Gestão de Equipe', 'Comissões Automáticas', 'Relatórios Dash', 'Prioridade VIP']}
+                 image="https://images.unsplash.com/photo-1512690196152-74472f1289df?q=80&w=600"
+               />
+             )}
+          </div>
         </div>
+      </section>
 
-        <div className="absolute bottom-12 right-12 hidden md:block opacity-20">
-            <p className="text-[8px] font-black uppercase tracking-widest text-right leading-relaxed">
-              Copyright © 2024<br />Beleza Glow Ecosystem
+      {/* 6. CTA FINAL */}
+      <section className="py-32 px-6 text-center bg-white dark:bg-darkCard">
+         <div className="max-w-2xl mx-auto space-y-12 pb-20">
+            <h2 className="text-5xl md:text-8xl font-serif font-black dark:text-white italic tracking-tighter leading-tight">
+               O futuro da sua <br /> beleza é <span className="text-ruby underline decoration-ruby/10">agora.</span>
+            </h2>
+            <p className="text-stone-500 dark:text-quartz text-lg font-medium">
+               Não perca mais tempo com soluções fragmentadas. <br />
+               Eleve-se ao padrão Glow.
             </p>
-        </div>
-      </section>
-
-      {/* SEÇÃO 2: MANIFESTO EDITORIAL */}
-      <section className="py-40 px-6 md:px-24 bg-white text-onyx relative overflow-hidden">
-         <div className="absolute top-0 right-0 w-1/3 h-full bg-offwhite -skew-x-12 translate-x-1/2"></div>
-         
-         <div className="max-w-7xl mx-auto relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
-                <div className="space-y-12">
-                   <div className="flex items-center gap-4">
-                      <div className="w-12 h-[2px] bg-ruby"></div>
-                      <p className="text-ruby text-[10px] font-black uppercase tracking-[0.6em]">A Filosofia</p>
-                   </div>
-                   <h2 className="text-5xl md:text-8xl font-serif font-black leading-tight italic tracking-tighter">A Arte de <br /><span className="text-gold">Ser Inesquecível.</span></h2>
-                   <p className="text-stone-500 text-xl md:text-2xl font-medium leading-relaxed max-w-lg">
-                     Nossa curadoria seleciona apenas os artistas que dominam a fusão entre técnica milenar e tendências globais.
-                   </p>
-                   <div className="flex gap-12 pt-8">
-                      <div>
-                        <p className="text-4xl font-serif font-black">150+</p>
-                        <p className="text-[10px] font-black uppercase text-quartz tracking-widest">Ateliers Elite</p>
-                      </div>
-                      <div>
-                        <p className="text-4xl font-serif font-black">24/7</p>
-                        <p className="text-[10px] font-black uppercase text-quartz tracking-widest">Concierge</p>
-                      </div>
-                   </div>
-                </div>
-
-                <div className="relative">
-                   <div className="aspect-[4/5] rounded-[80px] overflow-hidden luxury-shadow border-[15px] border-white relative z-10 group">
-                      <img src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?q=80&w=1000" className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="Estética" />
-                   </div>
-                   <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-ruby rounded-[60px] -z-0 opacity-10 animate-pulse"></div>
-                </div>
-            </div>
          </div>
       </section>
 
-      {/* SEÇÃO 3: RITUAIS - GRELHA LUXUOSA */}
-      <section className="py-40 px-6 bg-onyx border-t border-white/5">
-         <div className="max-w-7xl mx-auto text-center space-y-20">
-            <h3 className="text-4xl md:text-7xl font-serif font-black italic text-white">Rituais que <span className="text-ruby underline decoration-ruby/20">Seduzem.</span></h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-               {[
-                 { title: "Visagismo Pro", cat: "Cabelo & Barba", img: "https://images.unsplash.com/photo-1599351431247-f10b21ce963f?q=80&w=800" },
-                 { title: "Glow Skin 24k", cat: "Estética Facial", img: "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?q=80&w=800" },
-                 { title: "Aura Nails", cat: "Design de Unhas", img: "https://images.unsplash.com/photo-1604654894610-df490668711d?q=80&w=800" }
-               ].map((item, i) => (
-                 <div key={i} className="group relative aspect-[3/4] rounded-[60px] overflow-hidden luxury-shadow border border-white/5">
-                    <img src={item.img} className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-1000" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-onyx via-transparent to-transparent"></div>
-                    <div className="absolute bottom-12 left-10 text-left space-y-2">
-                       <p className="text-ruby text-[9px] font-black uppercase tracking-widest">{item.cat}</p>
-                       <h4 className="text-3xl font-serif font-bold text-white italic">{item.title}</h4>
-                    </div>
-                 </div>
-               ))}
-            </div>
-         </div>
-      </section>
-
-      {/* SEÇÃO FINAL: CHAMADA AO IMPÉRIO */}
-      <section className="relative py-48 px-6 bg-onyx text-center overflow-hidden">
-         <div className="absolute inset-0 z-0 opacity-20">
-            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-ruby/40 via-transparent to-transparent"></div>
-         </div>
-
-         <div className="relative z-10 space-y-16">
-            <div className="space-y-4">
-              <h4 className="text-5xl md:text-[8rem] font-serif font-black italic tracking-tighter text-white/5 underline decoration-white/5">Your Kingdom.</h4>
-              <p className="text-2xl md:text-5xl font-serif font-black italic text-white leading-tight">Prepare-se para brilhar como <br /> <span className="text-gold">nunca antes.</span></p>
-            </div>
-            
-            <button 
-              onClick={onStart}
-              className="px-24 py-10 bg-ruby text-white rounded-full font-black uppercase tracking-[0.5em] text-[11px] shadow-[0_25px_60px_rgba(157,23,77,0.4)] hover:scale-110 active:scale-95 transition-all duration-500 border border-white/10"
-            >
-              Entrar no Universo
-            </button>
-         </div>
-      </section>
-
-      {/* FOOTER LUXURY */}
-      <footer className="py-20 px-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-10 opacity-40">
-         <h1 className="text-2xl font-serif font-black tracking-tighter">GLOW <span className="italic font-normal">ELITE</span></h1>
-         <div className="flex gap-10 text-[9px] font-black uppercase tracking-widest">
-            <button onClick={() => setIsPolicyOpen(true)} className="hover:text-gold transition-colors uppercase">Termos de Luxo</button>
-            <button onClick={() => setIsPolicyOpen(true)} className="hover:text-gold transition-colors uppercase">Privacidade</button>
-            <a href="#" className="hover:text-gold transition-colors">Parcerias</a>
-         </div>
-         <p className="text-[9px] font-black uppercase tracking-widest">Luanda, Angola</p>
+      {/* RODAPÉ MÍNIMO */}
+      <footer className="py-12 border-t border-quartz/10 bg-white dark:bg-onyx text-center opacity-30 px-6">
+         <p className="text-[9px] font-bold uppercase tracking-widest">&copy; 2024 BELEZA GLOW • ALL RIGHTS RESERVED</p>
       </footer>
 
-      {isPolicyOpen && <PolicyModal onClose={() => setIsPolicyOpen(false)} />}
+      {/* 📱 BOTÃO FIXO (STICKY CONVERSION) */}
+      <div className="fixed bottom-0 left-0 right-0 p-6 z-[9500] pointer-events-none flex justify-center">
+         <div className="max-w-sm w-full pointer-events-auto">
+            <button 
+              onClick={onStart}
+              className="w-full py-6 bg-ruby text-white rounded-[30px] font-black uppercase tracking-[0.4em] text-[11px] shadow-[0_25px_60px_rgba(157,23,77,0.6)] border border-white/20 active:scale-95 transition-all flex items-center justify-center gap-4 group"
+            >
+              Começar Agora
+              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                <Icons.ChevronRight />
+              </div>
+            </button>
+         </div>
+      </div>
+
+      {isTermsOpen && <TermsOfUse onClose={() => setIsTermsOpen(false)} />}
 
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes ken-burns {
-          0% { transform: scale(1.1) translate(0,0); }
-          100% { transform: scale(1.3) translate(-2%, -2%); }
-        }
-        .animate-ken-burns {
-          animation: ken-burns 40s infinite alternate ease-in-out;
-        }
-        @keyframes fade-in-up {
-          from { opacity: 0; transform: translateY(60px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in-up {
-          animation: fade-in-up 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        .delay-500 { animation-delay: 0.5s; }
-        .delay-1000 { animation-delay: 1s; }
-        .font-sans { font-family: 'Inter', sans-serif; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}} />
     </div>
   );
 };
+
+/* COMPONENTES INTERNOS DE SUPORTE */
+
+const PainPoint = ({ icon, text }: any) => (
+  <div className="flex items-center gap-4 p-4 bg-offwhite dark:bg-onyx/30 rounded-2xl border border-quartz/5">
+     <span className="w-6 h-6 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center font-black text-xs shrink-0">{icon}</span>
+     <p className="text-stone-600 dark:text-quartz font-medium text-sm leading-tight">{text}</p>
+  </div>
+);
+
+const SolutionCard = ({ title, desc, icon }: any) => (
+  <div className="bg-white/5 p-8 rounded-[40px] border border-white/10 text-center space-y-3 transition-all hover:border-gold/30">
+     <div className="text-gold flex justify-center scale-125 mb-4">{icon}</div>
+     <h4 className="text-xl font-serif font-black italic">{title}</h4>
+     <p className="text-quartz text-[10px] font-medium leading-relaxed uppercase tracking-widest px-4">{desc}</p>
+  </div>
+);
+
+const SegmentView = ({ title, price, features, image }: any) => (
+  <div className="flex flex-col items-center text-center space-y-10 group">
+     <div className="aspect-[4/3] w-full max-w-xs overflow-hidden">
+        <GlowImage 
+          src={image} 
+          alt={title} 
+          variant="prestige" 
+          className="w-full h-full"
+        />
+     </div>
+     <div className="space-y-6">
+        <div className="space-y-1">
+           <p className="text-ruby text-[9px] font-black uppercase tracking-[0.4em]">{title}</p>
+           <h3 className="text-5xl font-serif font-black italic dark:text-white leading-none">{price}</h3>
+           <p className="text-[8px] font-bold text-stone-500 uppercase tracking-widest mt-1">Sincronização Mensal</p>
+        </div>
+        <ul className="space-y-3 max-w-xs mx-auto">
+           {features.map((f: string, i: number) => (
+             <li key={i} className="flex items-center justify-center gap-3 text-stone-600 dark:text-quartz font-bold italic text-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-gold"></div> {f}
+             </li>
+           ))}
+        </ul>
+     </div>
+  </div>
+);
 
 export default LandingPage;

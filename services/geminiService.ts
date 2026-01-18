@@ -1,19 +1,18 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { ProviderProfile } from "../types";
 
-// Strictly following initialization guidelines by using process.env.API_KEY directly
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 export async function getBeautyRecommendations(prompt: string, goldProviders: ProviderProfile[]) {
   try {
+    // Initialize AI right before usage as per guidelines
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
     // Criar contexto dos profissionais Ouro disponíveis
     const providersContext = goldProviders.map(p => 
       `- ${p.businessName}: ${p.bio}`
     ).join('\n');
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: 'gemini-3-flash-preview',
       contents: `O usuário busca recomendações de beleza: "${prompt}". 
       
       IMPORTANTE: Você é um Concierge de Elite da Beleza Glow. 
@@ -37,6 +36,9 @@ export async function getBeautyRecommendations(prompt: string, goldProviders: Pr
 
 export async function getBusinessInsights(stats: any) {
   try {
+    // Initialize AI right before usage as per guidelines
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `Analise as seguintes métricas de um salão de beleza e forneça 2 dicas estratégicas de crescimento: 

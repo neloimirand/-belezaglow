@@ -2,298 +2,319 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ProviderProfile } from '../types';
 import { Icons } from '../constants';
-
-const MOCK_MAP_PROVIDERS: ProviderProfile[] = [
-  {
-    id: '1',
-    userId: 'u1',
-    businessName: 'L’Atelier Beauty Luanda',
-    location: { address: 'Avenida Lenine, Edifício Crystal', latitude: -8.8399, longitude: 13.2355 },
-    rating: 4.9,
-    reviewCount: 342,
-    bio: 'Alta costura em estética. Especialistas em transformações capilares.',
-    openingHours: '09:00 - 20:00',
-    portfolio: ['https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=400&auto=format&fit=crop'],
-    services: []
-  },
-  {
-    id: '2',
-    userId: 'u2',
-    businessName: 'The Gent’s Club Talatona',
-    location: { address: 'Via AL-12, Talatona Center', latitude: -8.9200, longitude: 13.1800 },
-    rating: 5.0,
-    reviewCount: 189,
-    bio: 'Experiência sensorial masculina e barboterapia clássica.',
-    openingHours: '08:00 - 21:00',
-    portfolio: ['https://images.unsplash.com/photo-1503951914875-452162b0f3f1?q=80&w=400&auto=format&fit=crop'],
-    services: []
-  },
-  {
-    id: '3',
-    userId: 'u3',
-    businessName: 'Maison de l’Ongle',
-    location: { address: 'Maianga, Rua da Missão', latitude: -8.8350, longitude: 13.2310 },
-    rating: 4.8,
-    reviewCount: 521,
-    bio: 'A arte do design de unhas em Luanda.',
-    openingHours: '10:00 - 19:00',
-    portfolio: ['https://images.unsplash.com/photo-1604654894610-df490668711d?q=80&w=400&auto=format&fit=crop'],
-    services: []
-  }
-];
+import { MOCK_PROVIDERS } from '../data/mockProviders';
 
 interface MapExplorerProps {
   onSelectProvider: (p: ProviderProfile) => void;
+  initialRouteProvider?: ProviderProfile | null;
 }
 
-const MapExplorer: React.FC<MapExplorerProps> = ({ onSelectProvider }) => {
+const MapExplorer: React.FC<MapExplorerProps> = ({ onSelectProvider, initialRouteProvider }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const routeLayerRef = useRef<any>(null);
   const userMarkerRef = useRef<any>(null);
+  const accuracyCircleRef = useRef<any>(null);
+  const watchIdRef = useRef<number | null>(null);
 
-  const [isNavigating, setIsNavigating] = useState(false);
   const [activeRoute, setActiveRoute] = useState<{ provider: ProviderProfile; distance: string; time: string } | null>(null);
   const [viewMode, setViewMode] = useState<'streets' | 'satellite'>('streets');
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [selectedInMap, setSelectedInMap] = useState<ProviderProfile | null>(null);
+  const [isLive, setIsLive] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
 
   const speak = (text: string) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'pt-BR';
-      utterance.rate = 1.0;
       window.speechSynthesis.speak(utterance);
     }
   };
 
-  const handleLocateMe = () => {
-    if (navigator.geolocation && mapInstanceRef.current) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const { latitude, longitude } = pos.coords;
-          setUserLocation([latitude, longitude]);
-          mapInstanceRef.current.setView([latitude, longitude], 15, { animate: true });
-          
-          if (userMarkerRef.current) mapInstanceRef.current.removeLayer(userMarkerRef.current);
-
-          userMarkerRef.current = (window as any).L.circleMarker([latitude, longitude], {
-            radius: 12,
-            fillColor: "#9D174D",
-            color: "#fff",
-            weight: 4,
-            fillOpacity: 0.9
-          }).addTo(mapInstanceRef.current).bindPopup("<p class='font-black uppercase text-[10px] tracking-widest p-2 text-center text-ruby'>Você está aqui</p>").openPopup();
-        },
-        () => alert("Habilite a geolocalização para usar o radar.")
-      );
+  // Voo cinematográfico para a posição do usuário em qualquer lugar do mundo
+  const centerOnUser = () => {
+    if (userLocation && mapInstanceRef.current) {
+      setIsFollowing(true);
+      mapInstanceRef.current.flyTo(userLocation, 16, {
+        animate: true,
+        duration: 2.5,
+        easeLinearity: 0.25
+      });
+    } else {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const newPos: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+            setUserLocation(newPos);
+            mapInstanceRef.current?.flyTo(newPos, 16, { animate: true, duration: 2 });
+            setIsFollowing(true);
+          },
+          () => console.error("GPS negado")
+        );
+      }
     }
   };
 
-  const drawRoute = (targetProvider: ProviderProfile) => {
-    if (!userLocation || !mapInstanceRef.current) {
-      alert("Localize-se primeiro clicando em 'Encontrar Agora'.");
-      return;
-    }
+  const drawRoute = (targetProvider: ProviderProfile, startLoc?: [number, number]) => {
+    const L = (window as any).L;
+    if (!mapInstanceRef.current) return;
+    
+    const start = startLoc || userLocation || [-8.8383, 13.2344]; 
 
     if (routeLayerRef.current) mapInstanceRef.current.removeLayer(routeLayerRef.current);
 
     const points = [
-      userLocation,
+      start,
       [targetProvider.location.latitude, targetProvider.location.longitude]
     ];
 
-    routeLayerRef.current = (window as any).L.polyline(points, {
+    routeLayerRef.current = L.polyline(points, {
       color: '#9D174D',
       weight: 6,
-      opacity: 0.8,
-      dashArray: '10, 10',
+      opacity: 0.9,
+      dashArray: '1, 15',
       lineCap: 'round',
-      className: 'animate-route-flow'
+      className: 'animate-route-glow'
     }).addTo(mapInstanceRef.current);
 
-    mapInstanceRef.current.fitBounds(routeLayerRef.current.getBounds(), { padding: [50, 50] });
+    mapInstanceRef.current.fitBounds(routeLayerRef.current.getBounds(), { padding: [100, 100] });
     
     setActiveRoute({
       provider: targetProvider,
-      distance: "2.4 km",
-      time: "8 min"
+      distance: "Calculando tempo real...",
+      time: "Aprox. 7-12 min"
     });
     
-    speak(`Rota traçada para ${targetProvider.businessName}. Distância de 2 quilômetros e 400 metros. Estimativa de 8 minutos.`);
+    speak(`Radar ativado para ${targetProvider.businessName}.`);
   };
 
-  const startNavigation = () => {
-    setIsNavigating(true);
-    speak("Iniciando navegação. Siga em frente na direção da Avenida principal.");
-    
-    // Simulação de chegada após 5 segundos para fins de demonstração
-    setTimeout(() => {
-      speak("Você chegou ao seu destino: " + activeRoute?.provider.businessName + ". Seja bem-vinda e aproveite seu momento Glow!");
-      alert("📍 VOCÊ CHEGOU!\nO salão foi notificado da sua presença.");
-      setIsNavigating(false);
-      setActiveRoute(null);
-      if (routeLayerRef.current) mapInstanceRef.current.removeLayer(routeLayerRef.current);
-    }, 8000);
+  const startTracking = () => {
+    if (navigator.geolocation) {
+      setIsLive(true);
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        (pos) => {
+          const { latitude, longitude, accuracy } = pos.coords;
+          const newPos: [number, number] = [latitude, longitude];
+          setUserLocation(newPos);
+          
+          const L = (window as any).L;
+          if (!mapInstanceRef.current) return;
+
+          if (!userMarkerRef.current) {
+            const userIcon = L.divIcon({
+              className: 'user-location-marker',
+              html: `
+                <div class="relative w-14 h-14">
+                  <div class="absolute inset-0 bg-blue-500/20 rounded-full animate-radar-pulse"></div>
+                  <div class="absolute inset-4 bg-white border-[3px] border-blue-600 rounded-full shadow-2xl z-10">
+                    <div class="w-full h-full bg-blue-600 rounded-full scale-50"></div>
+                  </div>
+                </div>
+              `,
+              iconSize: [56, 56],
+              iconAnchor: [28, 28]
+            });
+            userMarkerRef.current = L.marker(newPos, { icon: userIcon, zIndexOffset: 1000 }).addTo(mapInstanceRef.current);
+            
+            accuracyCircleRef.current = L.circle(newPos, {
+                radius: accuracy,
+                color: '#3B82F6',
+                fillColor: '#3B82F6',
+                fillOpacity: 0.1,
+                weight: 1
+            }).addTo(mapInstanceRef.current);
+          } else {
+            userMarkerRef.current.setLatLng(newPos);
+            accuracyCircleRef.current.setLatLng(newPos).setRadius(accuracy);
+          }
+
+          if (isFollowing) {
+            mapInstanceRef.current.panTo(newPos);
+          }
+
+          if (initialRouteProvider && !routeLayerRef.current) {
+            drawRoute(initialRouteProvider, newPos);
+          }
+        },
+        (err) => {
+          console.error("GPS Global Error:", err);
+          setIsLive(false);
+        },
+        { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }
+      );
+    }
   };
 
   const toggleLayer = () => {
     const newMode = viewMode === 'streets' ? 'satellite' : 'streets';
     setViewMode(newMode);
+    const L = (window as any).L;
     if (mapInstanceRef.current) {
       mapInstanceRef.current.eachLayer((layer: any) => {
         if (layer._url) mapInstanceRef.current.removeLayer(layer);
       });
       const url = newMode === 'streets' 
-        ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+        ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
         : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-      (window as any).L.tileLayer(url).addTo(mapInstanceRef.current);
+      L.tileLayer(url, { worldCopyJump: true }).addTo(mapInstanceRef.current);
     }
   };
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    const map = (window as any).L.map(mapContainerRef.current, {
-      center: [-8.8383, 13.2344],
-      zoom: 13,
+    const L = (window as any).L;
+    // CONFIGURAÇÃO GLOBAL SEM LIMITES
+    const map = L.map(mapContainerRef.current, {
+      center: [0, 0],
+      zoom: 3,
       zoomControl: false,
-      attributionControl: false
+      attributionControl: false,
+      worldCopyJump: true, // Pula o mapa quando cruza o meridiano 180
+      minZoom: 2,
+      maxBounds: null // Remove limites
     });
 
     mapInstanceRef.current = map;
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        noWrap: false
+    }).addTo(map);
 
-    (window as any).L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png').addTo(map);
+    map.on('dragstart', () => setIsFollowing(false));
 
-    MOCK_MAP_PROVIDERS.forEach(provider => {
-      const customIcon = (window as any).L.divIcon({
-        className: 'custom-marker',
-        html: `<div style="background: #9D174D; width: 40px; height: 40px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 10px 20px rgba(157,23,77,0.3);">
-                <div style="transform: rotate(45deg); width: 10px; height: 10px; background: white; border-radius: 50%;"></div>
-               </div>`,
-        iconSize: [40, 40],
-        iconAnchor: [20, 40]
-      });
-
-      const marker = (window as any).L.marker([provider.location.latitude, provider.location.longitude], { icon: customIcon })
-        .addTo(map);
-
-      const popupContent = `
-        <div class="flex flex-col w-64 overflow-hidden">
-          <img src="${provider.portfolio[0]}" class="w-full h-32 object-cover">
-          <div class="p-4 space-y-2">
-            <h4 class="font-serif font-bold text-lg text-onyx">${provider.businessName}</h4>
-            <p class="text-[10px] text-quartz leading-relaxed">${provider.bio}</p>
-            <div class="flex flex-col gap-2 pt-2">
-              <button id="btn-route-${provider.id}" class="w-full bg-ruby text-white py-3 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg">Traçar Rota</button>
-              <button id="btn-details-${provider.id}" class="w-full border border-ruby text-ruby py-3 rounded-xl text-[9px] font-black uppercase tracking-widest">Ver Perfil</button>
+    MOCK_PROVIDERS.forEach(provider => {
+      const customIcon = L.divIcon({
+        className: 'glow-marker',
+        html: `
+          <div class="relative group">
+            <div class="absolute -inset-4 bg-ruby/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-all"></div>
+            <div class="w-12 h-12 bg-onyx border-2 border-ruby rounded-2xl flex items-center justify-center shadow-2xl transition-all group-hover:scale-110 group-hover:-translate-y-2 overflow-hidden">
+              <img src="${provider.portfolio[0]}" class="w-full h-full object-cover opacity-80" />
             </div>
           </div>
-        </div>
-      `;
-
-      marker.bindPopup(popupContent);
-      marker.on('popupopen', () => {
-        document.getElementById(`btn-route-${provider.id}`)?.addEventListener('click', () => {
-          drawRoute(provider);
-          map.closePopup();
-        });
-        document.getElementById(`btn-details-${provider.id}`)?.addEventListener('click', () => {
-          onSelectProvider(provider);
-        });
+        `,
+        iconSize: [48, 48],
+        iconAnchor: [24, 48]
       });
+
+      L.marker([provider.location.latitude, provider.location.longitude], { icon: customIcon })
+        .addTo(map)
+        .on('click', () => {
+          setSelectedInMap(provider);
+          map.flyTo([provider.location.latitude, provider.location.longitude], 16, { duration: 1.5 });
+        });
     });
 
-    return () => map.remove();
+    startTracking();
+
+    return () => {
+      if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current);
+      map.remove();
+    };
   }, []);
 
   return (
-    <div className="h-full w-full relative overflow-hidden rounded-[40px] md:rounded-[50px] luxury-shadow border border-quartz/10">
+    <div className="h-full w-full relative overflow-hidden bg-onyx">
       <div ref={mapContainerRef} className="h-full w-full z-0" />
       
-      {/* HUD DE NAVEGAÇÃO (Aparece ao traçar rota) */}
-      {activeRoute && !isNavigating && (
-        <div className="absolute top-8 left-8 right-8 md:left-auto md:right-8 md:w-96 z-20 bg-white/90 dark:bg-onyx/90 backdrop-blur-2xl p-8 rounded-[35px] shadow-2xl border border-ruby/20 animate-fade-in">
-          <div className="flex justify-between items-start mb-6">
-             <div className="space-y-1">
-               <p className="text-ruby text-[9px] font-black uppercase tracking-widest">Destino de Elite</p>
-               <h4 className="font-serif font-black text-2xl text-onyx dark:text-white leading-tight">{activeRoute.provider.businessName}</h4>
-             </div>
-             <button onClick={() => setActiveRoute(null)} className="text-quartz hover:text-ruby transition-colors">
-               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
-             </button>
-          </div>
-          <div className="flex items-center gap-8 mb-8">
-            <div className="flex flex-col">
-              <span className="text-quartz text-[8px] font-black uppercase tracking-widest">Distância</span>
-              <span className="text-xl font-bold text-onyx dark:text-white">{activeRoute.distance}</span>
-            </div>
-            <div className="w-px h-8 bg-quartz/20"></div>
-            <div className="flex flex-col">
-              <span className="text-quartz text-[8px] font-black uppercase tracking-widest">Tempo</span>
-              <span className="text-xl font-bold text-ruby">{activeRoute.time}</span>
-            </div>
-          </div>
-          <button 
-            onClick={startNavigation}
-            className="w-full py-5 bg-ruby text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] shadow-xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4"
-          >
-            <div className="w-2 h-2 bg-white rounded-full animate-ping"></div>
-            Iniciar Navegação
-          </button>
+      {/* HUD SUPERIOR - STATUS GLOBAL */}
+      <div className="absolute top-8 left-8 z-20 pointer-events-none">
+        <div className="bg-onyx/80 backdrop-blur-3xl border border-white/10 p-5 rounded-[30px] shadow-2xl flex items-center gap-5 pointer-events-auto animate-fade-in">
+           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-all ${isLive ? 'bg-emerald text-white' : 'bg-ruby text-white'}`}>
+              <Icons.Map />
+           </div>
+           <div>
+              <h3 className="text-white font-serif font-black italic text-lg tracking-tighter">Radar <span className="text-ruby">Global.</span></h3>
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald animate-pulse' : 'bg-red-500'}`}></div>
+                <p className="text-quartz text-[7px] font-black uppercase tracking-[0.3em]">{isLive ? 'Sincronização Mundial Ativa' : 'Procurando GPS...'}</p>
+              </div>
+           </div>
         </div>
-      )}
-
-      {/* HUD EM NAVEGAÇÃO ATIVA */}
-      {isNavigating && (
-        <div className="absolute top-8 left-1/2 -translate-x-1/2 w-[90%] md:w-[400px] z-30 bg-ruby p-8 rounded-[35px] shadow-[0_30px_60px_rgba(157,23,77,0.4)] text-white flex items-center gap-6 animate-fade-in">
-          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-          </div>
-          <div className="flex-1 space-y-1">
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Próxima Instrução</p>
-            <p className="text-lg font-bold leading-tight">Siga em frente por 400m em direção ao {activeRoute?.provider.businessName}</p>
-          </div>
-          <button onClick={() => setIsNavigating(false)} className="p-3 bg-white/10 rounded-full hover:bg-white/20">
-             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M18 6 6 18M6 6l12 12"/></svg>
-          </button>
-        </div>
-      )}
-
-      {/* CONTROLES LATERAIS */}
-      <div className="absolute bottom-8 right-8 z-20 flex flex-col gap-3">
-         <button 
-           onClick={toggleLayer}
-           className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center shadow-2xl border transition-all ${viewMode === 'satellite' ? 'bg-ruby border-white text-white' : 'bg-white border-quartz/10 text-onyx'}`}
-         >
-           <span className="text-[7px] font-black uppercase tracking-tighter">{viewMode === 'streets' ? 'Satélite' : 'Mapa'}</span>
-           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="m2 12 10 5 10-5M2 17l10 5 10-5M12 2 2 7l10 5 10-5-10-5z"/></svg>
-         </button>
-         <div className="flex flex-col bg-white dark:bg-onyx rounded-2xl shadow-2xl border border-quartz/10">
-            <button onClick={() => mapInstanceRef.current?.zoomIn()} className="w-14 h-14 flex items-center justify-center text-ruby border-b border-quartz/10 hover:bg-quartz/5 font-bold text-xl">+</button>
-            <button onClick={() => mapInstanceRef.current?.zoomOut()} className="w-14 h-14 flex items-center justify-center text-ruby hover:bg-quartz/5 font-bold text-xl">-</button>
-         </div>
       </div>
 
-      {/* BOTÃO CENTRALIZAR */}
-      {!isNavigating && (
-        <button 
-          onClick={handleLocateMe}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 bg-white/95 dark:bg-onyx/95 text-ruby px-10 py-5 rounded-full border border-ruby/30 shadow-2xl flex items-center gap-4 hover:scale-105 active:scale-95 transition-all group"
-        >
-          <div className="w-3 h-3 bg-ruby rounded-full animate-pulse"></div>
-          <span className="text-[10px] font-black uppercase tracking-widest">Encontrar agora</span>
-        </button>
+      {/* CONTROLES FLUTUANTES - LATERAL DIREITA */}
+      <div className="absolute top-8 right-8 z-20 flex flex-col gap-4 pointer-events-auto">
+         <button onClick={toggleLayer} className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-2xl border ${viewMode === 'satellite' ? 'bg-ruby text-white shadow-ruby/20' : 'bg-onyx/80 text-white border-white/10 backdrop-blur-xl'}`}>
+           <Icons.Map />
+         </button>
+         <button onClick={() => mapInstanceRef.current?.zoomIn()} className="w-14 h-14 bg-white/10 backdrop-blur-xl text-white rounded-2xl flex items-center justify-center border border-white/10 active:scale-90 transition-all">
+           <Icons.Plus />
+         </button>
+      </div>
+
+      {/* BOTÃO MESTRE: MINHA LOCALIZAÇÃO ATUAL (VÔO GLOBAL) */}
+      <div className="absolute bottom-12 right-8 z-20 flex flex-col items-end gap-4 pointer-events-auto">
+         <button 
+          onClick={centerOnUser}
+          className={`group relative w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-[0_20px_50px_rgba(0,0,0,0.4)] border-2 active:scale-95 ${
+            isFollowing ? 'bg-gold border-gold text-onyx' : 'bg-white border-white text-onyx'
+          }`}
+          title="Onde estou agora?"
+         >
+            {isFollowing && (
+              <div className="absolute inset-0 rounded-full border-4 border-gold animate-ping opacity-30"></div>
+            )}
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="12" r="3" fill={isFollowing ? 'currentColor' : 'none'}/>
+              <line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/>
+              <line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/>
+            </svg>
+            
+            <div className="absolute right-20 bg-onyx text-white px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 backdrop-blur-md">
+              Localizar-me em tempo real
+            </div>
+         </button>
+      </div>
+
+      {/* Card de Provedor Selecionado */}
+      {selectedInMap && !activeRoute && (
+        <div className="absolute bottom-10 left-6 right-6 md:left-auto md:right-10 md:w-[400px] z-20 bg-onyx/90 backdrop-blur-3xl p-8 rounded-[45px] shadow-2xl border border-ruby/30 animate-fade-in-up">
+           <div className="flex justify-between items-start mb-6">
+              <div className="flex items-center gap-5">
+                 <img src={selectedInMap.portfolio[0]} className="w-16 h-16 rounded-2xl object-cover border border-ruby/30" />
+                 <div>
+                    <h4 className="text-xl font-serif font-black text-white italic leading-none">{selectedInMap.businessName}</h4>
+                    <p className="text-quartz text-[8px] font-bold uppercase mt-1 tracking-widest">{selectedInMap.location.address.split(',')[0]}</p>
+                 </div>
+              </div>
+              <button onClick={() => setSelectedInMap(null)} className="text-quartz hover:text-white">✕</button>
+           </div>
+           <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => drawRoute(selectedInMap)} className="py-4 bg-white text-onyx rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-ruby hover:text-white transition-all">Ver Rota Live</button>
+              <button onClick={() => onSelectProvider(selectedInMap)} className="py-4 bg-ruby text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-xl transition-all">Detalhes do Atelier</button>
+           </div>
+        </div>
+      )}
+
+      {/* Painel de Navegação Ativa */}
+      {activeRoute && (
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[92%] md:w-[600px] z-30 bg-ruby p-8 rounded-[45px] shadow-[0_40px_100px_rgba(157,23,77,0.4)] text-white flex items-center gap-8 animate-fade-in-up border border-white/10">
+           <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-xl shrink-0">
+              <div className="rotate-180 scale-[1.3] animate-bounce"><Icons.ChevronRight /></div>
+           </div>
+           <div className="flex-1">
+              <p className="text-[8px] font-black uppercase tracking-[0.4em] opacity-60 mb-0.5">Navegação Live Ativa</p>
+              <h4 className="text-lg font-serif font-black italic">{activeRoute.provider.businessName}</h4>
+              <p className="text-[10px] opacity-80 truncate">{activeRoute.provider.location.address}</p>
+           </div>
+           <button onClick={() => setActiveRoute(null)} className="p-3 hover:bg-white/10 rounded-full transition-all">✕</button>
+        </div>
       )}
 
       <style dangerouslySetInnerHTML={{ __html: `
-        .animate-route-flow {
-          stroke-dashoffset: 200;
-          animation: routeFlow 5s linear infinite;
+        .animate-route-glow { stroke-dashoffset: 50; animation: routeFlow 1.5s linear infinite; }
+        @keyframes routeFlow { to { stroke-dashoffset: 0; } }
+        @keyframes radar-pulse { 
+          0% { transform: scale(1); opacity: 0.8; }
+          100% { transform: scale(2.5); opacity: 0; }
         }
-        @keyframes routeFlow {
-          to { stroke-dashoffset: 0; }
-        }
+        .animate-radar-pulse { animation: radar-pulse 2s infinite ease-out; }
+        @keyframes fade-in-up { from { opacity: 0; transform: translate(-50%, 30px); } to { opacity: 1; transform: translate(-50%, 0); } }
+        .animate-fade-in-up { animation: fade-in-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       `}} />
     </div>
   );

@@ -15,14 +15,6 @@ export enum AppointmentStatus {
 
 export type GenderTarget = 'feminino' | 'masculino' | 'unissex';
 
-export interface Coupon {
-  id: string;
-  code: string;
-  discountPercent: number;
-  validUntil: string;
-  type: 'PLATFORM' | 'PROVIDER';
-}
-
 export interface User {
   id: string;
   email: string;
@@ -33,7 +25,6 @@ export interface User {
   isVerified: boolean;
   status: 'active' | 'suspended' | 'blocked';
   glowPoints?: number;
-  // planTier added to fix missing property errors in AdminDashboard and ensure consistency with UserProfile
   planTier?: PlanTier;
 }
 
@@ -52,24 +43,26 @@ export interface Service {
   price: number;
   durationMinutes: number;
   categoryId: string;
-  subcategoria?: string;
-  locationStrategy?: 'onsite' | 'offsite' | 'both';
-  assignedEmployeeIds?: string[];
-  benefits?: string;
-  specification?: string; // Novo campo solicitado
+  specification?: string;
   photoUrl?: string;
+  subcategoria?: string;
+  locationStrategy?: 'onsite' | 'home';
 }
 
 export interface Employee {
   id: string;
   name: string;
   role: string;
-  commission: number;
-  phone: string;
-  photoUrl: string;
-  location?: { address: string; latitude: number; longitude: number; };
-  services?: string[];
-  isPro?: boolean;
+  phone?: string;
+  photoUrl?: string;
+  commissionPercent: number;
+  active: boolean;
+  services: Service[];
+  location?: { 
+    address: string; 
+    latitude: number; 
+    longitude: number; 
+  };
 }
 
 export interface Category {
@@ -79,18 +72,6 @@ export interface Category {
   ordem: number;
   status: 'ativo' | 'inativo';
   subcategorias: string[];
-}
-
-export interface GalleryItem {
-  id: string;
-  url: string;
-  description?: string;
-}
-
-export interface Location {
-  address: string;
-  latitude: number;
-  longitude: number;
 }
 
 export interface ProviderProfile {
