@@ -6,6 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Beleza Glow - Elite Beauty Marketplace</title>
     
+    <!-- SEO & Rich Preview (WhatsApp, Instagram, Facebook) -->
+    <meta name="description" content="O marketplace de beleza mais exclusivo de Angola. Reserve rituais de estética com os melhores especialistas de Luanda.">
+    <meta property="og:title" content="Beleza Glow | Elite Beauty">
+    <meta property="og:description" content="Conecte-se às melhores Maisons e Artistas de Angola. Agendamento inteligente e rituais de prestígio.">
+    <meta property="og:image" content="https://images.unsplash.com/photo-1596462502278-27bfac4033c8?q=80&w=1200">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    
     <!-- PWA Meta Tags -->
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0F0F14">
@@ -13,14 +23,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Beleza Glow">
     
-    <!-- iOS Icons & Splash - Estilizados com a Identidade de Luxo -->
+    <!-- iOS Icons -->
     <link rel="apple-touch-icon" href="https://img.icons8.com/color/512/000000/diamond.png">
-    <link rel="apple-touch-startup-image" href="https://images.unsplash.com/photo-1596462502278-27bfac4033c8?q=80&w=1000">
-    
-    <!-- Preconnect for performance -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://images.unsplash.com">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,900&family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
@@ -70,9 +74,6 @@
         .dark .luxury-shadow {
           box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
         }
-        .ruby-shadow {
-          box-shadow: 0 15px 35px -5px rgba(157, 23, 77, 0.4);
-        }
         .animate-fade-in {
           animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
@@ -80,17 +81,6 @@
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .glass-dark {
-          background: rgba(15, 15, 20, 0.95);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #9D174D; border-radius: 10px; }
-        
-        /* Safe Area Helper */
         .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
         .pt-safe { padding-top: env(safe-area-inset-top); }
     </style>
@@ -100,26 +90,15 @@
     "react": "https://esm.sh/react@^19.2.3",
     "react/": "https://esm.sh/react@^19.2.3/",
     "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2"
   }
 }
 </script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-<!-- PDF Generator Engine -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body class="text-onyx bg-offwhite dark:bg-onyx dark:text-offwhite">
     <div id="root"></div>
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').then(reg => {
-            console.log('Glow PWA Engine Active');
-          }).catch(err => {
-            console.log('PWA Offline Engine Failure', err);
-          });
-        });
-      }
-    </script>
 </body>
 </html>
