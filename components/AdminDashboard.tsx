@@ -14,19 +14,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onMasquerade }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('members');
   const [isGenerating, setIsGenerating] = useState(false);
   
-  // --- PERSISTÊNCIA DE DADOS ---
+  // --- PERSISTÊNCIA DE DADOS LIMPA PARA PRODUÇÃO ---
   const [users, setUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem('glow_admin_users');
-    return saved ? JSON.parse(saved) : [
-      { id: 'u1', name: 'Ana Manuel', email: 'ana@glow.ao', role: UserRole.CLIENT, planTier: 'GOLD', isVerified: true, status: 'active', glowPoints: 1200 },
-      { id: 'u2', name: 'Mauro Vaz', email: 'mauro@glow.ao', role: UserRole.PROFESSIONAL, planTier: 'SILVER', isVerified: true, status: 'active', glowPoints: 500 },
-      { id: 'u3', name: 'Maison de l’Ongle', email: 'contato@maison.ao', role: UserRole.SALON, planTier: 'DIAMOND', isVerified: true, status: 'active', glowPoints: 3000 },
-    ];
+    return saved ? JSON.parse(saved) : []; // Iniciamos sem contas falsas
   });
 
-  const [paymentRequests, setPaymentRequests] = useState([
-    { id: 'p1', userId: 'u1', userName: 'Carla Silva', plan: 'GOLD', amount: '45.000 Kz', date: 'Hoje, 10:30', status: 'pending', proof: 'https://images.unsplash.com/photo-1554224155-16974a4ea2c5?q=80&w=600' }
-  ]);
+  const [paymentRequests, setPaymentRequests] = useState([]); // Limpo para produção
 
   useEffect(() => {
     localStorage.setItem('glow_admin_users', JSON.stringify(users));
@@ -42,7 +36,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onMasquerade }) => {
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
   const handleApprovePayment = (id: string) => {
-    setPaymentRequests(prev => prev.filter(r => r.id !== id));
+    setPaymentRequests(prev => prev.filter((r: any) => r.id !== id));
     alert("Capital Validado. O plano do usuário foi ativado no ecossistema.");
     setModalType(null);
   };
@@ -99,27 +93,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onMasquerade }) => {
         {activeTab === 'members' && (
           <div className="p-8 space-y-6">
             <h3 className="text-2xl font-serif font-black dark:text-white italic px-4">Gestão de <span className="text-ruby">Patentes.</span></h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {users.map(u => (
-                <div key={u.id} className="bg-offwhite dark:bg-onyx p-8 rounded-[40px] border border-quartz/10 flex items-center justify-between group hover:border-ruby/30 transition-all">
-                  <div className="flex items-center gap-6">
-                    <div className="w-16 h-16 bg-ruby/10 text-ruby rounded-2xl flex items-center justify-center font-serif font-black text-2xl">{u.name.charAt(0)}</div>
-                    <div>
-                      <h4 className="font-serif font-black dark:text-white text-xl italic">{u.name}</h4>
-                      <p className="text-[9px] font-black text-quartz uppercase tracking-widest mt-1">{u.role} • <span className="text-ruby">{u.planTier}</span></p>
+            
+            {users.length === 0 ? (
+              <div className="py-32 text-center opacity-30 italic font-serif text-2xl">Aguardando novos membros reais...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {users.map(u => (
+                  <div key={u.id} className="bg-offwhite dark:bg-onyx p-8 rounded-[40px] border border-quartz/10 flex items-center justify-between group hover:border-ruby/30 transition-all">
+                    <div className="flex items-center gap-6">
+                      <div className="w-16 h-16 bg-ruby/10 text-ruby rounded-2xl flex items-center justify-center font-serif font-black text-2xl">{u.name.charAt(0)}</div>
+                      <div>
+                        <h4 className="font-serif font-black dark:text-white text-xl italic">{u.name}</h4>
+                        <p className="text-[9px] font-black text-quartz uppercase tracking-widest mt-1">{u.role} • <span className="text-ruby">{u.planTier}</span></p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => onMasquerade(u)} className="p-4 bg-white dark:bg-darkCard rounded-xl text-quartz hover:text-ruby shadow-sm"><Icons.User /></button>
+                      <button onClick={() => { setSelectedItem(u); setModalType('plan_edit'); }} className="p-4 bg-white dark:bg-darkCard rounded-xl text-quartz hover:text-gold shadow-sm"><Icons.Award /></button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <button onClick={() => onMasquerade(u)} className="p-4 bg-white dark:bg-darkCard rounded-xl text-quartz hover:text-ruby shadow-sm"><Icons.User /></button>
-                    <button onClick={() => { setSelectedItem(u); setModalType('plan_edit'); }} className="p-4 bg-white dark:bg-darkCard rounded-xl text-quartz hover:text-gold shadow-sm"><Icons.Award /></button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* ABA SMS HUB (INDIVIDUAL ADICIONADO) */}
+        {/* ABA SMS HUB */}
         {activeTab === 'sms' && (
           <div className="p-10 md:p-20 max-w-3xl mx-auto space-y-12 text-center animate-fade-in">
             <div className="space-y-3">
@@ -144,7 +143,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onMasquerade }) => {
               ))}
             </div>
 
-            {smsTarget === 'individual' && (
+            {smsTarget === 'individual' && users.length > 0 && (
               <div className="animate-fade-in scale-up">
                 <select 
                   value={selectedUserForSMS}
@@ -180,9 +179,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onMasquerade }) => {
             <h3 className="text-3xl font-serif font-black dark:text-white italic px-4">Auditoria do <span className="text-emerald">Cofre.</span></h3>
             <div className="space-y-6">
               {paymentRequests.length === 0 ? (
-                <div className="py-32 text-center opacity-30 italic font-serif text-2xl">Cofre em conformidade. Nenhuma pendência.</div>
+                <div className="py-32 text-center opacity-30 italic font-serif text-2xl">Cofre em conformidade. Nenhuma pendência real.</div>
               ) : (
-                paymentRequests.map(p => (
+                paymentRequests.map((p: any) => (
                   <div key={p.id} className="bg-offwhite dark:bg-onyx p-10 rounded-[50px] border border-quartz/10 flex flex-col md:flex-row items-center gap-10 animate-fade-in shadow-sm">
                     <div 
                       className="w-32 h-44 bg-black rounded-[30px] overflow-hidden border-4 border-white/5 shadow-2xl cursor-pointer group relative shrink-0"
@@ -201,7 +200,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onMasquerade }) => {
                     </div>
                     <div className="flex flex-col gap-3 w-full md:w-auto">
                        <button onClick={() => handleApprovePayment(p.id)} className="px-10 py-5 bg-emerald text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all">Aprovar Crédito</button>
-                       <button onClick={() => setPaymentRequests(prev => prev.filter(req => req.id !== p.id))} className="px-10 py-5 bg-white dark:bg-darkCard text-red-500 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">Rejeitar</button>
+                       <button onClick={() => setPaymentRequests(prev => prev.filter((req: any) => req.id !== p.id))} className="px-10 py-5 bg-white dark:bg-darkCard text-red-500 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">Rejeitar</button>
                     </div>
                   </div>
                 ))
@@ -211,23 +210,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onMasquerade }) => {
         )}
 
       </main>
-
-      {/* MODAL DE COMPROVATIVO */}
-      {modalType === 'proof_view' && selectedItem && (
-        <div className="fixed inset-0 z-[9000] flex items-center justify-center p-4 backdrop-blur-3xl bg-onyx/90 animate-fade-in">
-           <div className="bg-white dark:bg-darkCard w-full max-w-2xl rounded-[60px] p-8 md:p-12 luxury-shadow border border-white/5 space-y-8 relative text-center">
-              <button onClick={() => setModalType(null)} className="absolute top-10 right-10 text-quartz hover:text-ruby transition-colors">✕</button>
-              <h4 className="text-3xl font-serif font-black dark:text-white italic">Análise de <span className="text-emerald">Capital.</span></h4>
-              <div className="aspect-[3/4] w-full rounded-[45px] overflow-hidden bg-black border-4 border-white/5">
-                 <img src={selectedItem.proof} className="w-full h-full object-contain" />
-              </div>
-              <div className="flex gap-4">
-                 <button onClick={() => handleApprovePayment(selectedItem.id)} className="flex-1 py-6 bg-emerald text-white rounded-3xl font-black uppercase tracking-widest text-[10px] shadow-2xl">Confirmar Recebimento</button>
-                 <button onClick={() => setModalType(null)} className="px-8 py-6 bg-offwhite dark:bg-onyx dark:text-white rounded-3xl font-black uppercase tracking-widest text-[9px]">Fechar</button>
-              </div>
-           </div>
-        </div>
-      )}
 
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes scale-up { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
