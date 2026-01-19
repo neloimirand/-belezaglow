@@ -3,23 +3,21 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
-// Registro do Service Worker para PWA (Beleza Glow Offline Strategy)
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(registration => {
-        console.log('Glow PWA: Service Worker registrado com sucesso:', registration.scope);
-      })
-      .catch(error => {
-        console.error('Glow PWA: Falha ao registrar Service Worker:', error);
+    // Usando caminho relativo para evitar conflitos de origem em ambientes de preview/proxy.
+    // O './sw.js' garante que ele seja buscado na mesma origem e subpasta do app.
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('Glow PWA Active:', reg.scope))
+      .catch(err => {
+        // Log apenas como aviso, pois em certos ambientes de desenvolvimento o SW pode ser bloqueado intencionalmente
+        console.warn('Glow PWA registration note:', err.message);
       });
   });
 }
 
 const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error("Could not find root element to mount to");
-}
+if (!rootElement) throw new Error("Root element missing");
 
 const root = ReactDOM.createRoot(rootElement);
 root.render(

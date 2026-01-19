@@ -6,20 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Beleza Glow - Elite Beauty Marketplace</title>
     
-    <!-- SEO & Rich Preview -->
-    <meta name="description" content="O marketplace de beleza mais exclusivo de Angola. Reserve rituais de estética com os melhores especialistas de Luanda.">
-    <meta property="og:title" content="Beleza Glow | Elite Beauty">
-    <meta property="og:description" content="Conecte-se às melhores Maisons e Artistas de Angola. Agendamento inteligente e rituais de prestígio.">
-    <meta property="og:image" content="https://images.unsplash.com/photo-1596462502278-27bfac4033c8?q=80&w=1200">
-    <meta property="og:type" content="website">
-    
-    <!-- PWA Meta Tags -->
+    <meta name="description" content="O marketplace de beleza mais exclusivo de Angola.">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0F0F14">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Beleza Glow">
-    
     <link rel="apple-touch-icon" href="https://img.icons8.com/color/512/000000/diamond.png">
     
     <script src="https://cdn.tailwindcss.com"></script>
@@ -52,39 +41,39 @@
         html { scroll-behavior: smooth; }
         body { 
           font-family: 'Inter', sans-serif; 
-          transition: background-color 0.5s ease, color 0.5s ease;
+          background-color: #FFFBFC;
+          color: #0F0F14;
           -webkit-font-smoothing: antialiased;
           overscroll-behavior-y: contain;
-          padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
         .dark body { background-color: #0F0F14; color: #FFFBFC; }
-        h1, h2, h3, .font-serif { font-family: 'Playfair Display', serif; letter-spacing: -0.04em; }
         .luxury-shadow { box-shadow: 0 30px 60px -12px rgba(15, 15, 20, 0.15); }
-        .dark .luxury-shadow { box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5); }
         .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
     </style>
 <script type="importmap">
 {
   "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
-    "react/": "https://esm.sh/react@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
-    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.37.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.90.1",
     "vite": "https://esm.sh/vite@^7.3.1",
-    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.90.1"
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
 }
 </script>
 </head>
 <body class="text-onyx bg-offwhite dark:bg-onyx dark:text-offwhite">
     <div id="root"></div>
-    <!-- Bibliotecas externas que não estão no NPM -->
+    
+    <!-- Scripts externos que não dependem do build -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
-    <!-- PONTO DE ENTRADA DO APP -->
+    <!-- Entrada principal do React (Caminho relativo para evitar erros de cross-origin em proxies) -->
     <script type="module" src="./index.tsx"></script>
 </body>
 </html>

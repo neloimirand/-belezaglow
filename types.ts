@@ -28,14 +28,6 @@ export interface User {
   planTier?: PlanTier;
 }
 
-export interface Plan {
-  id: string;
-  name: string;
-  price: number;
-  benefits: string[];
-  target: 'PROFESSIONAL' | 'SALON';
-}
-
 export interface Service {
   id: string;
   providerId: string;
