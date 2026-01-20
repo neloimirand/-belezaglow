@@ -6,15 +6,12 @@ const supabaseAnonKey = 'sb_publishable_EzZ17Iw-A0jPgDu9kABl4A_cpF-O2O4';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-/**
- * Converte erros complexos do Supabase/Postgres em mensagens legíveis.
- */
 export const stringifySupabaseError = (error: any): string => {
-  if (!error) return 'Erro desconhecido no ecossistema.';
+  if (!error) return 'Operação concluída.';
   if (typeof error === 'string') return error;
   
   if (error.message === 'Failed to fetch' || error.message?.includes('NetworkError')) {
-    return 'Sinal de Rede Fraco: Verifique sua conexão em Luanda.';
+    return 'Sinal de Rede Fraco em Luanda.';
   }
 
   const msg = error.message || error.details || error.hint || error.msg;
@@ -24,17 +21,9 @@ export const stringifySupabaseError = (error: any): string => {
     return `${code}${msg}`;
   }
 
-  try {
-    const stringified = JSON.stringify(error);
-    return stringified === '{}' ? `Erro técnico: ${error.toString()}` : stringified;
-  } catch {
-    return 'Erro de integridade de dados no servidor.';
-  }
+  return 'Erro de integridade de dados.';
 };
 
-/**
- * Detecta se o erro é especificamente de tabela inexistente (Schema desatualizado)
- */
 export const isTableMissingError = (error: any) => {
   if (!error) return false;
   const msg = stringifySupabaseError(error).toLowerCase();
