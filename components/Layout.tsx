@@ -26,128 +26,82 @@ const Layout: React.FC<LayoutProps> = ({
   unreadNotifsCount = 0,
   onToggleNotifs
 }) => {
-  const isBusinessUser = role === UserRole.PROFESSIONAL || role === UserRole.SALON;
-  const isSalon = role === UserRole.SALON;
-  const isPro = role === UserRole.PROFESSIONAL;
-  const isAdmin = role === UserRole.ADMIN;
-
-  const handleShareApp = async () => {
-    const shareData = {
-      title: 'Beleza Glow Elite',
-      text: 'Descubra os rituais de beleza mais exclusivos de Angola no Beleza Glow.',
-      url: window.location.origin
-    };
-
-    try {
-      if (navigator.share) {
-        await navigator.share(shareData);
-      } else {
-        await navigator.clipboard.writeText(window.location.origin);
-        alert("Link Elite copiado para a área de transferência!");
-      }
-    } catch (err) {
-      console.log('User cancelled or error sharing');
-    }
-  };
-
   return (
-    <div className="flex flex-col min-h-screen bg-offwhite dark:bg-onyx pb-32 md:pb-0 md:pl-80 transition-colors duration-700">
+    <div className="flex flex-col min-h-screen bg-offwhite dark:bg-onyx pb-32 md:pb-0 md:pl-80 transition-colors duration-700 overflow-x-hidden">
       
-      {/* HEADER MOBILE (Para botões de ação rápida no topo) */}
-      <header className="md:hidden fixed top-0 left-0 right-0 h-20 bg-white/80 dark:bg-onyx/80 backdrop-blur-xl border-b border-quartz/10 z-[100] px-6 flex items-center justify-between">
-         <h1 className="font-serif font-black italic text-xl dark:text-white">Glow <span className="text-ruby">Elite</span></h1>
-         <div className="flex items-center gap-3">
-            <button onClick={handleShareApp} className="p-3 bg-ruby/10 text-ruby rounded-xl active:scale-90 transition-all">
-              <Icons.Share />
+      {/* HEADER MOBILE CENTRALIZADO - LUXURY SYMMETRY */}
+      <header className="md:hidden fixed top-0 left-0 right-0 h-24 bg-white/90 dark:bg-onyx/90 backdrop-blur-3xl border-b border-quartz/10 z-[500] px-6 flex items-center justify-between safe-top">
+         <div className="w-12">
+            <button onClick={toggleTheme} className="p-3 bg-offwhite dark:bg-darkCard rounded-2xl text-ruby shadow-sm active:scale-90 transition-all border border-quartz/5">
+               {theme === 'light' ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg> : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line></svg>}
             </button>
-            <button onClick={onToggleNotifs} className="relative p-3 bg-offwhite dark:bg-darkCard rounded-xl text-quartz">
+         </div>
+         
+         <div className="flex flex-col items-center text-center">
+            <h1 className="font-serif font-black italic text-2xl dark:text-white tracking-tighter leading-none">Glow <span className="text-ruby">Elite</span></h1>
+            <p className="text-[7px] font-black uppercase text-gold tracking-[0.5em] mt-1">Angola Private Network</p>
+         </div>
+
+         <div className="w-12 flex justify-end">
+            <button onClick={onToggleNotifs} className="relative p-3 bg-ruby/10 text-ruby rounded-2xl transition-all active:scale-90 border border-ruby/10">
                <Icons.Bell filled={unreadNotifsCount > 0} />
                {unreadNotifsCount > 0 && <div className="absolute top-2 right-2 w-2 h-2 bg-ruby rounded-full border border-white"></div>}
             </button>
          </div>
       </header>
 
-      {/* SIDEBAR (Desktop) */}
-      <aside className="hidden md:flex flex-col fixed left-0 top-0 bottom-0 w-80 bg-white dark:bg-darkCard border-r border-quartz/10 dark:border-white/5 z-50 transition-colors duration-500">
+      {/* Sidebar Desktop Permanence */}
+      <aside className="hidden md:flex flex-col fixed left-0 top-0 bottom-0 w-80 bg-white dark:bg-darkCard border-r border-quartz/10 z-50">
         <div className="p-12 space-y-8">
-          <button onClick={() => onTabChange('home')} className="group text-left transition-all active:scale-95">
-            <h1 className="text-3xl font-serif font-black text-onyx dark:text-white tracking-tighter flex items-center gap-2 transition-colors duration-500">
+          <button onClick={() => onTabChange('home')} className="group text-left focus:outline-none">
+            <h1 className="text-3xl font-serif font-black text-onyx dark:text-white tracking-tighter">
               GLOW <span className="font-normal italic text-gold">ELITE</span>
             </h1>
-            <p className="text-[10px] text-quartz dark:text-quartz/50 uppercase font-black tracking-[0.5em] mt-4 group-hover:tracking-[0.7em] transition-all">Angola Concierge</p>
+            <p className="text-[10px] text-quartz uppercase font-black tracking-[0.5em] mt-4">Angola Concierge</p>
           </button>
-
-          <div className="flex gap-3">
-            <button onClick={toggleTheme} className="flex-1 flex items-center justify-center h-16 bg-offwhite dark:bg-onyx rounded-2xl border border-quartz/20 dark:border-white/10 hover:border-ruby transition-all group shadow-sm text-ruby">
-              {theme === 'light' ? 
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg> : 
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line></svg>
-              }
-            </button>
-            <button onClick={handleShareApp} className="flex-1 flex items-center justify-center h-16 bg-ruby/5 text-ruby rounded-2xl border border-ruby/20 hover:bg-ruby hover:text-white transition-all shadow-sm">
-               <Icons.Share />
-            </button>
-          </div>
         </div>
         
-        <nav className="flex-1 px-8 space-y-3 mt-4 overflow-y-auto scrollbar-hide pb-10">
-          <NavItem icon={<Icons.Star filled={activeTab === 'home'} />} label="Início" active={activeTab === 'home'} onClick={() => onTabChange('home')} />
-          <NavItem icon={<Icons.Map />} label="Radar Global" active={activeTab === 'map'} onClick={() => onTabChange('map')} />
-          <NavItem icon={<Icons.Calendar />} label="Meus Rituais" active={activeTab === 'bookings'} onClick={() => onTabChange('bookings')} />
-          
-          {isBusinessUser && (
-            <div className="pt-8 border-t border-quartz/10 mt-8 space-y-3">
-              <p className="text-ruby text-[10px] font-black uppercase tracking-[0.3em] px-6 mb-4">{isSalon ? 'Ferramentas Maison' : 'Ferramentas Artista'}</p>
-              <NavItem icon={<Icons.Chart />} label={isSalon ? 'Console Maison' : 'Dashboard Artista'} active={activeTab === 'management' || (isPro && activeTab === 'home')} onClick={() => onTabChange(isSalon ? 'management' : 'home')} />
-            </div>
-          )}
-          
-          <div className="pt-8">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] px-6 mb-6 text-quartz/60">Canal Directo</p>
-            <NavItem icon={<Icons.Message />} label="Mensagens VIP" active={activeTab === 'messages'} onClick={() => onTabChange('messages')} />
-            <NavItem icon={<Icons.User />} label="Meu Perfil" active={activeTab === 'profile'} onClick={() => onTabChange('profile')} />
-          </div>
+        <nav className="flex-1 px-8 space-y-3 overflow-y-auto scrollbar-hide py-6">
+          <NavItem active={activeTab === 'home'} onClick={() => onTabChange('home')} icon={<Icons.Home />} label="DASHBOARD" />
+          <NavItem active={activeTab === 'services'} onClick={() => onTabChange('services')} icon={<Icons.Briefcase />} label="RITUAIS" />
+          <NavItem active={activeTab === 'my-appointments'} onClick={() => onTabChange('my-appointments')} icon={<Icons.Calendar />} label="COMPROMISSOS" />
+          <NavItem active={activeTab === 'discover'} onClick={() => onTabChange('discover')} icon={<Icons.Search />} label="RADAR ELITE" />
+          <NavItem active={activeTab === 'map'} onClick={() => onTabChange('map')} icon={<Icons.Map />} label="MAPA LIVE" />
+          <NavItem active={activeTab === 'concierge'} onClick={() => onTabChange('concierge')} icon={<Icons.Star filled />} label="IA CONCIERGE" />
+          <div className="h-px bg-quartz/10 my-8 mx-4" />
+          <NavItem active={activeTab === 'profile'} onClick={() => onTabChange('profile')} icon={<Icons.User />} label="MINHA CONTA" />
         </nav>
 
-        <div className="p-10 border-t border-quartz/10 dark:border-white/5">
-           <button onClick={onLogout} className="w-full py-4 rounded-2xl border border-red-500/20 text-red-500 text-[10px] font-black uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all">Sair</button>
-        </div>
+        {onLogout && (
+          <div className="p-12 border-t border-quartz/5">
+            <button onClick={onLogout} className="text-[9px] font-black uppercase text-quartz hover:text-ruby transition-all flex items-center gap-4">
+               Sair da Maison
+            </button>
+          </div>
+        )}
       </aside>
 
-      {/* MOBILE NAV BOTTOM */}
-      <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[94%] h-22 bg-onyx/95 dark:bg-darkCard/98 backdrop-blur-3xl rounded-[40px] flex items-center justify-around px-2 z-[100] shadow-[0_25px_60px_rgba(0,0,0,0.5)] border border-white/10">
-        <NavButton active={activeTab === 'home'} onClick={() => onTabChange('home')} icon={<Icons.Home />} label="Home" />
-        <NavButton active={activeTab === 'map'} onClick={() => onTabChange('map')} icon={<Icons.Map />} label="Radar" />
-        
-        <button 
-          onClick={() => onTabChange(isSalon ? 'management' : isPro ? 'home' : 'concierge')} 
-          className={`-mt-10 w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 bg-gold text-onyx ring-4 ring-gold/20`}
-        >
-          {isBusinessUser ? <Icons.Chart /> : <Icons.Star filled />}
-        </button>
-
-        <NavButton active={activeTab === 'messages'} onClick={() => onTabChange('messages')} icon={<Icons.Message />} label="Chat" />
-        <NavButton active={activeTab === 'profile'} onClick={() => onTabChange('profile')} icon={<Icons.User />} label="Perfil" />
-      </nav>
-
-      <main className="flex-1 max-w-[1600px] mx-auto w-full p-6 pt-28 md:p-16 animate-fade-in overflow-x-hidden">
-        {children}
+      <main className="flex-1 p-6 md:p-12 pt-32 md:pt-12">
+        <div className="max-w-7xl mx-auto">{children}</div>
       </main>
+
+      {/* Bottom Navigation Mobile - ERGONOMIC SYMMETRY */}
+      <nav className="md:hidden fixed bottom-6 left-6 right-6 h-20 bg-onyx/95 backdrop-blur-2xl border border-white/10 rounded-[35px] z-[500] flex items-center justify-around px-2 shadow-[0_30px_60px_rgba(0,0,0,0.5)] overflow-hidden">
+        <button onClick={() => onTabChange('home')} className={`p-4 transition-all ${activeTab === 'home' ? 'text-ruby scale-125' : 'text-quartz opacity-50'}`}><Icons.Home /></button>
+        <button onClick={() => onTabChange('services')} className={`p-4 transition-all ${activeTab === 'services' ? 'text-ruby scale-125' : 'text-quartz opacity-50'}`}><Icons.Briefcase /></button>
+        <button onClick={() => onTabChange('my-appointments')} className={`p-4 transition-all ${activeTab === 'my-appointments' ? 'text-ruby scale-125' : 'text-quartz opacity-50'}`}><Icons.Calendar /></button>
+        <button onClick={() => onTabChange('map')} className={`p-4 transition-all ${activeTab === 'map' ? 'text-ruby scale-125' : 'text-quartz opacity-50'}`}><Icons.Map /></button>
+        <button onClick={() => onTabChange('concierge')} className={`p-4 transition-all ${activeTab === 'concierge' ? 'text-ruby scale-125' : 'text-quartz opacity-50'}`}><Icons.Star filled /></button>
+        <button onClick={() => onTabChange('profile')} className={`p-4 transition-all ${activeTab === 'profile' ? 'text-ruby scale-125' : 'text-quartz opacity-50'}`}><Icons.User /></button>
+      </nav>
     </div>
   );
 };
 
-const NavButton = ({ active, onClick, icon, label }: any) => (
-  <button onClick={onClick} className={`flex flex-col items-center gap-1.5 transition-all duration-500 active:scale-75 ${active ? 'text-ruby scale-110' : 'text-quartz/40'}`}>
-    <div className={`p-2.5 rounded-2xl transition-all ${active ? 'bg-ruby/15 shadow-inner' : ''}`}>{icon}</div>
-    <span className={`text-[8px] font-black uppercase tracking-[0.2em] ${active ? 'opacity-100' : 'opacity-40'}`}>{label}</span>
-  </button>
-);
-
-const NavItem = ({ icon, label, active, onClick }: any) => (
-  <button onClick={onClick} className={`w-full flex items-center gap-5 px-8 py-5 rounded-[30px] transition-all duration-500 group ${active ? 'bg-onyx dark:bg-white text-white dark:text-onyx shadow-2xl scale-105' : 'text-quartz hover:bg-quartz/5 hover:text-onyx dark:hover:text-white'}`}>
-    <span className={`transition-all duration-700 ${active ? 'scale-125 rotate-6 text-ruby' : 'group-hover:scale-110'}`}>{icon}</span>
-    <span className="text-[11px] font-black uppercase tracking-[0.2em]">{label}</span>
+const NavItem = ({ active, onClick, icon, label }: any) => (
+  <button onClick={onClick} className={`w-full flex items-center gap-5 p-5 rounded-[22px] transition-all group ${active ? 'bg-ruby text-white shadow-xl scale-[1.02]' : 'text-quartz hover:bg-offwhite dark:hover:bg-onyx'}`}>
+    <div className={`transition-transform ${active ? 'scale-110' : 'scale-90'}`}>{icon}</div>
+    <span className={`text-[10px] font-black uppercase tracking-[0.3em] ${active ? 'opacity-100' : 'opacity-60'}`}>{label}</span>
   </button>
 );
 

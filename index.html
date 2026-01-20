@@ -13,7 +13,7 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,900&family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
     
     <script>
       tailwind.config = {
@@ -69,11 +69,10 @@
 <body class="text-onyx bg-offwhite dark:bg-onyx dark:text-offwhite">
     <div id="root"></div>
     
-    <!-- Scripts externos que não dependem do build -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Scripts externos com CROSSORIGIN para evitar Script Error -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin=""></script>
     
-    <!-- Entrada principal do React (Caminho relativo para evitar erros de cross-origin em proxies) -->
     <script type="module" src="./index.tsx"></script>
 </body>
 </html>

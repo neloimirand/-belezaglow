@@ -2,19 +2,24 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Icons } from '../constants';
 import { ProviderProfile, Service } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface BookingModalProps {
   provider: ProviderProfile;
+  initialService?: Service | null;
   onClose: () => void;
-  onSuccess: (date: string, time: string) => void;
+  onSuccess: (date: string, time: string, service: Service) => void;
 }
 
-const BookingModal: React.FC<BookingModalProps> = ({ provider, onClose, onSuccess }) => {
-  const [step, setStep] = useState(1);
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
+const BookingModal: React.FC<BookingModalProps> = ({ provider, initialService, onClose, onSuccess }) => {
+  const [step, setStep] = useState(initialService ? 2 : 1);
+  const [selectedService, setSelectedService] = useState<Service | null>(initialService || null);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedHour, setSelectedHour] = useState<number | null>(null);
   const [selectedMinute, setSelectedMinute] = useState<string | null>(null);
+  const [occupiedSlots, setOccupiedSlots] = useState<string[]>([]);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const minutesRef = useRef<HTMLDivElement>(null);
   const now = new Date();
@@ -24,7 +29,39 @@ const BookingModal: React.FC<BookingModalProps> = ({ provider, onClose, onSucces
     d.getMonth() === now.getMonth() && 
     d.getFullYear() === now.getFullYear();
 
-  // Gera os próximos 14 dias
+  useEffect(() => {
+    if (initialService) {
+      setSelectedService(initialService);
+      setStep(2);
+    }
+  }, [initialService]);
+
+  // Carregar ocupação real do banco de dados
+  useEffect(() => {
+    const fetchOccupiedSlots = async () => {
+      setIsLoadingSlots(true);
+      const dateStr = selectedDate.toLocaleDateString('pt-BR');
+      try {
+        const { data } = await supabase
+          .from('appointments')
+          .select('time')
+          .eq('provider_id', provider.id)
+          .eq('date', dateStr)
+          .neq('status', 'CANCELLED');
+        
+        if (data) {
+          setOccupiedSlots(data.map(a => a.time));
+        }
+      } catch (err) {
+        console.warn("Erro ao buscar ocupação:", err);
+      } finally {
+        setIsLoadingSlots(false);
+      }
+    };
+
+    fetchOccupiedSlots();
+  }, [selectedDate, provider.id]);
+
   const nextDays = useMemo(() => {
     const days = [];
     for (let i = 0; i < 14; i++) {
@@ -37,18 +74,13 @@ const BookingModal: React.FC<BookingModalProps> = ({ provider, onClose, onSucces
 
   const minutesSlots = ['00', '15', '30', '45'];
 
-  // Lógica de horas disponível por dia (Regra Sábado 19h + 24h nos outros dias)
   const availableHours = useMemo(() => {
     const hours = Array.from({ length: 24 }, (_, i) => i);
-    const dayOfWeek = selectedDate.getDay(); // 6 = Sábado
+    const dayOfWeek = selectedDate.getDay(); 
 
     return hours.filter(h => {
-      // REGRA DE OURO: Sábado só abre às 19h
       if (dayOfWeek === 6 && h < 19) return false;
-
-      // REGRA DE HOJE: Não agendar no passado
       if (isToday(selectedDate) && h < now.getHours()) return false;
-
       return true;
     });
   }, [selectedDate]);
@@ -59,15 +91,25 @@ const BookingModal: React.FC<BookingModalProps> = ({ provider, onClose, onSucces
     }
   }, [selectedHour]);
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (selectedService && selectedHour !== null && selectedMinute) {
+      setIsProcessing(true);
       const dateStr = selectedDate.toLocaleDateString('pt-BR');
       const timeStr = `${selectedHour.toString().padStart(2, '0')}:${selectedMinute}`;
-      onSuccess(dateStr, timeStr);
+      
+      // Pequeno delay para percepção de sistema seguro
+      setTimeout(() => {
+        onSuccess(dateStr, timeStr, selectedService);
+        setIsProcessing(false);
+      }, 1000);
     }
   };
 
   const isSlotOccupied = (h: number, m: string) => {
+    const timeStr = `${h.toString().padStart(2, '0')}:${m}`;
+    // Ocupação do banco de dados
+    if (occupiedSlots.includes(timeStr)) return true;
+    // Ocupação lógica (passado)
     if (isToday(selectedDate) && h === now.getHours() && parseInt(m) <= now.getMinutes()) return true;
     return false;
   };
@@ -102,12 +144,12 @@ const BookingModal: React.FC<BookingModalProps> = ({ provider, onClose, onSucces
           <p className="text-[9px] font-black uppercase tracking-[0.5em] opacity-30 relative z-10">Glow Elite Angola Concierge</p>
         </div>
 
-        {/* ÁREA DE AGENDAMENTO (Mobile-Optimized) */}
+        {/* ÁREA DE AGENDAMENTO */}
         <div className="flex-1 flex flex-col bg-offwhite dark:bg-onyx overflow-hidden">
           
           <header className="px-8 py-8 md:px-16 md:py-12 border-b border-quartz/10 flex items-center justify-between shrink-0 bg-white dark:bg-darkCard z-30 shadow-sm">
              <div className="flex items-center gap-6">
-                {step > 1 && (
+                {step > 1 && !initialService && (
                   <button onClick={() => setStep(step - 1)} className="w-14 h-14 flex items-center justify-center bg-offwhite dark:bg-onyx rounded-[22px] active:scale-90 transition-all border border-quartz/5">
                     <div className="rotate-180 scale-125"><Icons.ChevronRight /></div>
                   </button>
@@ -141,7 +183,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ provider, onClose, onSucces
                       <div className="text-left flex-1 space-y-3 py-2">
                         <p className="font-serif font-black text-2xl md:text-4xl text-onyx dark:text-white leading-none group-hover:text-ruby transition-colors">{s.name}</p>
                         <p className="text-[11px] text-ruby font-black uppercase tracking-widest">{s.price.toLocaleString()} Kz • {s.durationMinutes} min</p>
-                        <p className="text-[13px] text-stone-500 font-medium leading-relaxed italic pr-6">
+                        <p className="text-[13px] text-stone-500 font-medium leading-relaxed italic pr-6 truncate">
                            {s.specification || "Serviço de alta performance com curadoria de produtos exclusivos."}
                         </p>
                       </div>
@@ -180,7 +222,7 @@ const BookingModal: React.FC<BookingModalProps> = ({ provider, onClose, onSucces
                 <div className="space-y-6">
                    <div className="flex justify-between items-center ml-2">
                       <p className="text-[11px] font-black uppercase text-quartz tracking-[0.3em]">2. Escolha o Horário</p>
-                      {selectedDate.getDay() === 6 && <span className="text-[10px] font-black text-gold uppercase tracking-widest italic animate-pulse">Plantão Noturno Especial</span>}
+                      {isLoadingSlots && <div className="w-4 h-4 border-2 border-ruby/30 border-t-ruby rounded-full animate-spin"></div>}
                    </div>
                    <div className="grid grid-cols-4 md:grid-cols-6 gap-4">
                       {availableHours.map(h => (
@@ -197,12 +239,6 @@ const BookingModal: React.FC<BookingModalProps> = ({ provider, onClose, onSucces
                         </button>
                       ))}
                    </div>
-                   {availableHours.length === 0 && (
-                     <div className="py-24 text-center space-y-4 bg-white dark:bg-darkCard rounded-[50px] border-2 border-dashed border-quartz/20">
-                        <p className="text-quartz font-serif italic text-2xl">Agenda Trancada.</p>
-                        {selectedDate.getDay() === 6 && <p className="text-gold font-black text-[11px] uppercase tracking-[0.3em]">Sábados abrem às 19:00</p>}
-                     </div>
-                   )}
                 </div>
 
                 {/* MINUTOS */}
@@ -217,15 +253,16 @@ const BookingModal: React.FC<BookingModalProps> = ({ provider, onClose, onSucces
                               key={m} 
                               disabled={occupied}
                               onClick={() => setSelectedMinute(m)}
-                              className={`py-6 rounded-2xl text-base font-black transition-all border-2 ${
+                              className={`py-6 rounded-2xl text-base font-black transition-all border-2 relative overflow-hidden ${
                                 selectedMinute === m 
                                   ? 'bg-gold text-onyx border-gold shadow-xl scale-110 ring-8 ring-gold/10' 
                                   : occupied 
-                                    ? 'opacity-10 cursor-not-allowed grayscale'
-                                    : 'bg-white dark:bg-onyx text-quartz border-quartz/10'
+                                    ? 'bg-quartz/10 text-quartz/40 cursor-not-allowed border-transparent grayscale'
+                                    : 'bg-white dark:bg-onyx text-onyx dark:text-white border-quartz/10'
                               }`}
                             >
-                              :{m}
+                              {occupied && <div className="absolute top-0 left-0 w-full h-1 bg-red-500/20"></div>}
+                              {occupied ? 'Ocupado' : `:${m}`}
                             </button>
                           );
                         })}
@@ -282,9 +319,15 @@ const BookingModal: React.FC<BookingModalProps> = ({ provider, onClose, onSucces
             ) : (
               <button 
                 onClick={handleConfirm} 
+                disabled={isProcessing}
                 className="w-full py-7 md:py-10 bg-onyx dark:bg-white text-white dark:text-onyx rounded-[35px] font-black uppercase tracking-[0.6em] text-[11px] shadow-2xl hover:bg-ruby hover:text-white transition-all flex items-center justify-center gap-6"
               >
-                Confirmar Serviço Elite
+                {isProcessing ? (
+                  <div className="flex items-center gap-4">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Sincronizando Reserva...
+                  </div>
+                ) : 'Confirmar Serviço Elite'}
               </button>
             )}
           </footer>

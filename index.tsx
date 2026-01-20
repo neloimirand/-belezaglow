@@ -3,17 +3,23 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 
+// Registro do Service Worker otimizado para evitar spam de console em dev
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    // Usando caminho relativo para evitar conflitos de origem em ambientes de preview/proxy.
-    // O './sw.js' garante que ele seja buscado na mesma origem e subpasta do app.
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('Glow PWA Active:', reg.scope))
-      .catch(err => {
-        // Log apenas como aviso, pois em certos ambientes de desenvolvimento o SW pode ser bloqueado intencionalmente
-        console.warn('Glow PWA registration note:', err.message);
-      });
-  });
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const isHttps = window.location.protocol === 'https:';
+
+  if (isHttps && !isLocal) {
+    window.addEventListener('load', () => {
+      const swUrl = `${window.location.pathname.replace(/\/$/, '')}/sw.js`.replace(/\/+/g, '/');
+      navigator.serviceWorker.register(swUrl)
+        .then(reg => {
+          // Log apenas em produção ou se necessário
+        })
+        .catch(() => {
+          // Falha silenciosa em dev
+        });
+    });
+  }
 }
 
 const rootElement = document.getElementById('root');

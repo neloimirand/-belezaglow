@@ -2,36 +2,51 @@
 import React, { useState, useRef } from 'react';
 import { Icons } from '../constants';
 import { Service, User } from '../types';
-import { GoogleGenAI } from "@google/genai";
+import { supabase } from '../lib/supabase';
 
 interface RitualCuratorProps {
   user: User | null;
   services: Service[];
-  onUpdateServices: (services: Service[]) => void;
+  onUpdateServices: () => void;
   onActionNotify: (title: string, message: string, type: 'success' | 'error' | 'info') => void;
 }
 
 const RitualCurator: React.FC<RitualCuratorProps> = ({ user, services, onUpdateServices, onActionNotify }) => {
   const [isAdding, setIsAdding] = useState(false);
-  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [editingService, setEditingService] = useState<Partial<Service> | null>(null);
   const ritualFileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleOptimizeDescription = async () => {
-    if (!editingService?.name) return alert("Defina o nome do ritual primeiro.");
-    setIsOptimizing(true);
+  const handleSave = async () => {
+    if (!editingService?.name || !editingService?.price || !user) {
+        onActionNotify("Campos Obrigatórios", "Defina o Nome e o Valor do ritual.", "error");
+        return;
+    }
+
+    setIsSaving(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `Crie uma descrição técnica e luxuosa para o serviço de beleza "${editingService.name}". Use tom sofisticado, português de Angola, mencione exclusividade. Máximo 150 caracteres.`,
-      });
-      setEditingService(prev => ({ ...prev, specification: response.text }));
-      onActionNotify("Glow IA Optimizer", "Narrativa técnica aprimorada.", "success");
+      const payload = {
+        id: editingService.id || undefined,
+        provider_id: user.id,
+        name: editingService.name,
+        price: Number(editingService.price),
+        duration: Number(editingService.durationMinutes),
+        description: editingService.specification,
+        photo_url: editingService.photoUrl || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=600',
+        category_id: 'geral'
+      };
+
+      const { error } = await supabase.from('services').upsert(payload);
+      if (error) throw error;
+
+      onActionNotify("Ritual Sincronizado", "Publicado com sucesso no Radar Global.", "success");
+      onUpdateServices(); 
+      setIsAdding(false);
+      setEditingService(null);
     } catch (err) {
-      onActionNotify("Erro IA", "Indisponível no momento.", "error");
+      onActionNotify("Erro de Sincronização", "Verifique sua conexão.", "error");
     } finally {
-      setIsOptimizing(false);
+      setIsSaving(false);
     }
   };
 
@@ -39,144 +54,148 @@ const RitualCurator: React.FC<RitualCuratorProps> = ({ user, services, onUpdateS
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = () => {
-        setEditingService(prev => prev ? { ...prev, photoUrl: reader.result as string } : prev);
+      reader.onload = (event) => {
+        if (event.target?.result) {
+          setEditingService(prev => prev ? { ...prev, photoUrl: event.target.result as string } : prev);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSave = () => {
-    if (!editingService?.name || !editingService?.price) {
-        onActionNotify("Erro", "Nome e preço são obrigatórios.", "error");
-        return;
-    }
-    if (editingService.id) {
-      onUpdateServices(services.map(s => s.id === editingService.id ? editingService as Service : s));
-    } else {
-      const newS: Service = {
-        ...editingService as Service,
-        id: 's' + Date.now(),
-        providerId: user?.id || 'pro',
-        categoryId: 'geral',
-        photoUrl: editingService.photoUrl || 'https://images.unsplash.com/photo-1562322140-8baeececf3df?q=80&w=400'
-      };
-      onUpdateServices([newS, ...services]);
-    }
-    setIsAdding(false);
-    setEditingService(null);
-    onActionNotify("Menu Atualizado", "Ritual publicado no catálogo.", "success");
-  };
-
   return (
-    <div className="space-y-10 animate-fade-in pb-40 px-2 md:px-0">
-      <header className="flex flex-col md:flex-row justify-between items-center md:items-end gap-6 text-center md:text-left">
-        <div className="space-y-2">
-          <p className="text-ruby text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em]">Curadoria de Serviços</p>
-          <h3 className="text-4xl md:text-7xl font-serif font-black dark:text-white italic tracking-tighter">Menu de <span className="text-gold">Rituais.</span></h3>
+    <div className="space-y-16 animate-fade-in pb-32">
+      <header className="flex flex-col items-center text-center gap-8 px-4">
+        <div className="space-y-3">
+          <p className="text-ruby text-[11px] font-black uppercase tracking-[0.6em]">Catálogo de Experiências</p>
+          <h3 className="text-5xl md:text-8xl font-serif font-black dark:text-white italic tracking-tighter leading-none">Meus <span className="text-gold">Rituais.</span></h3>
         </div>
         <button 
           onClick={() => { setEditingService({ name: '', price: 0, durationMinutes: 60, specification: '' }); setIsAdding(true); }}
-          className="w-full md:w-auto px-10 py-5 bg-ruby text-white rounded-[25px] font-black uppercase tracking-widest text-[9px] shadow-xl active:scale-95 transition-all flex items-center justify-center gap-4"
+          className="w-full md:w-auto px-16 py-6 bg-ruby text-white rounded-full font-black uppercase tracking-widest text-[11px] shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-4 border border-white/10"
         >
-          <Icons.Plus /> Novo Ritual
+          <Icons.Plus /> Criar Novo Ritual Elite
         </button>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-        {services.length === 0 && (
-          <div className="col-span-full py-20 text-center opacity-30 border-2 border-dashed border-quartz/20 rounded-[45px]">
-            <p className="font-serif italic text-2xl">Nenhum ritual cadastrado.</p>
-            <p className="text-[10px] font-black uppercase tracking-widest mt-2 text-ruby">Toque no botão acima para começar</p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 px-4">
+        {services.length === 0 ? (
+          <div className="col-span-full py-32 text-center opacity-30 border-2 border-dashed border-quartz/20 rounded-[60px]">
+            <p className="font-serif italic text-3xl dark:text-white">Seu menu de rituais está vazio.</p>
           </div>
-        )}
-        {services.map(s => (
-          <div key={s.id} className="bg-white dark:bg-darkCard rounded-[40px] md:rounded-[45px] overflow-hidden luxury-shadow border border-quartz/10 group flex flex-col active:scale-[0.98] transition-all">
-            <div className="relative aspect-[16/10] overflow-hidden cursor-pointer" onClick={() => { setEditingService(s); setIsAdding(true); }}>
-               <img src={s.photoUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000" />
-               <div className="absolute inset-0 bg-gradient-to-t from-onyx/90 via-transparent to-transparent"></div>
-               <div className="absolute bottom-6 left-8 text-white italic font-serif font-black text-xl">{s.name}</div>
+        ) : services.map(s => (
+          <div key={s.id} className="bg-white dark:bg-darkCard rounded-[50px] overflow-hidden luxury-shadow border border-quartz/10 flex flex-col h-full group transition-all">
+            <div className="aspect-[16/10] w-full overflow-hidden">
+               <img src={s.photoUrl || 'https://images.unsplash.com/photo-1560066984-138dadb4c035?q=80&w=400'} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
             </div>
-            <div className="p-6 md:p-8 space-y-4 flex-1 flex flex-col justify-between">
-               <div className="space-y-2">
-                  <div className="flex justify-between items-baseline">
-                    <p className="text-ruby font-black text-xl md:text-2xl">{s.price.toLocaleString()} Kz</p>
-                    <p className="text-[8px] font-black text-quartz uppercase tracking-widest">{s.durationMinutes} MIN</p>
-                  </div>
-                  <p className="text-quartz text-[10px] font-medium line-clamp-2 italic leading-relaxed">{s.specification || 'Refine este ritual com a nossa IA.'}</p>
+            <div className="p-10 space-y-8 flex-1 flex flex-col justify-between">
+               <div className="text-center">
+                  <h4 className="font-serif font-black text-2xl italic dark:text-white leading-tight">{s.name}</h4>
+                  <p className="text-ruby font-black text-2xl mt-3">{s.price.toLocaleString()} Kz</p>
+                  <p className="text-quartz text-[10px] font-black uppercase tracking-widest mt-2 opacity-60">{s.durationMinutes} minutos de ritual</p>
                </div>
-               <button onClick={() => { setEditingService(s); setIsAdding(true); }} className="w-full py-4 bg-offwhite dark:bg-onyx text-quartz rounded-2xl text-[8px] font-black uppercase tracking-widest hover:text-ruby transition-colors border border-quartz/5">Refinar Ritual</button>
+               <button onClick={() => { setEditingService(s); setIsAdding(true); }} className="w-full py-5 bg-offwhite dark:bg-onyx text-onyx dark:text-white rounded-[25px] text-[10px] font-black uppercase tracking-widest border border-quartz/10 hover:text-ruby transition-all">Editar Ritual</button>
             </div>
           </div>
         ))}
       </div>
 
       {isAdding && editingService && (
-        <div className="fixed inset-0 z-[8000] flex items-center justify-center p-0 md:p-4 backdrop-blur-3xl bg-onyx/95 overflow-y-auto">
-          <div className="bg-white dark:bg-darkCard w-full max-w-2xl min-h-screen md:min-h-0 md:rounded-[60px] p-6 md:p-16 space-y-8 shadow-2xl animate-fade-in md:my-8 relative">
-            <button onClick={() => setIsAdding(false)} className="absolute top-6 right-6 md:top-8 md:right-8 w-10 h-10 md:w-12 md:h-12 rounded-full bg-offwhite dark:bg-onyx flex items-center justify-center hover:text-ruby transition-all z-10">✕</button>
+        <div className="fixed inset-0 z-[10000] bg-onyx flex flex-col animate-fade-in overflow-hidden">
+          
+          <header className="shrink-0 p-6 border-b border-white/10 bg-white/5 backdrop-blur-2xl flex justify-between items-center safe-top">
+             <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-ruby/10 rounded-2xl flex items-center justify-center text-ruby border border-ruby/20">
+                   <Icons.Plus />
+                </div>
+                <div>
+                   <h3 className="text-xl font-serif font-black text-white italic leading-none">Editor de Ritual</h3>
+                   <p className="text-[8px] font-black uppercase text-gold tracking-[0.3em] mt-1">Sincronização Radar Pro</p>
+                </div>
+             </div>
+             <button onClick={() => setIsAdding(false)} className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center text-white hover:bg-ruby transition-all active:scale-90">✕</button>
+          </header>
 
-            <header className="text-center pt-8 md:pt-0">
-              <h3 className="text-3xl font-serif font-black dark:text-white italic">{editingService.id ? 'Refinar' : 'Novo'} <span className="text-ruby">Ritual.</span></h3>
-            </header>
-            
-            <div className="space-y-6">
-               <div 
+          <div className="flex-1 overflow-y-auto px-6 py-10 space-y-12 scrollbar-hide pb-44 bg-onyx">
+            <div className="max-w-xl mx-auto space-y-12">
+              
+              <div className="space-y-4 text-center">
+                <p className="text-[10px] font-black uppercase text-quartz tracking-[0.4em]">Capa do Serviço</p>
+                <div 
                   onClick={() => ritualFileInputRef.current?.click()}
-                  className="relative w-full aspect-video rounded-[35px] overflow-hidden bg-offwhite dark:bg-onyx border-2 border-dashed border-quartz/20 flex items-center justify-center cursor-pointer group"
-               >
+                  className="relative w-full aspect-video rounded-[50px] overflow-hidden bg-white/5 border-2 border-dashed border-white/10 flex flex-col items-center justify-center cursor-pointer group hover:border-ruby/40 transition-all"
+                >
                   {editingService.photoUrl ? (
-                     <img src={editingService.photoUrl} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                    <img src={editingService.photoUrl} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
                   ) : (
-                     <div className="text-center space-y-2 opacity-40">
-                        <Icons.Gallery />
-                        <p className="text-[8px] font-black uppercase tracking-widest">Capa do Ritual</p>
-                     </div>
+                    <div className="text-center opacity-30 text-white space-y-4">
+                      <div className="flex justify-center scale-150"><Icons.Gallery /></div>
+                      <p className="text-[10px] font-black uppercase tracking-widest">Selecione uma imagem de impacto</p>
+                    </div>
                   )}
-                  <div className="absolute inset-0 bg-onyx/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                     <span className="text-[9px] font-black text-white uppercase tracking-widest">Trocar</span>
-                  </div>
-               </div>
-               <input type="file" ref={ritualFileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
+                  <input type="file" ref={ritualFileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
+                </div>
+              </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                  <div className="space-y-1.5">
-                     <label className="text-[8px] font-black uppercase text-quartz ml-4 tracking-widest">Nome Público</label>
-                     <input value={editingService.name} onChange={e => setEditingService({...editingService, name: e.target.value})} placeholder="Ex: Corte Sculpting Pro" className="w-full bg-offwhite dark:bg-onyx p-5 rounded-[22px] border border-quartz/10 dark:text-white font-bold shadow-inner" />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                     <div className="space-y-1.5">
-                        <label className="text-[8px] font-black uppercase text-quartz ml-4 tracking-widest">Valor (Kz)</label>
-                        <input type="number" value={editingService.price} onChange={e => setEditingService({...editingService, price: Number(e.target.value)})} className="w-full bg-offwhite dark:bg-onyx p-5 rounded-[22px] border border-quartz/10 dark:text-white font-bold shadow-inner" />
-                     </div>
-                     <div className="space-y-1.5">
-                        <label className="text-[8px] font-black uppercase text-quartz ml-4 tracking-widest">Tempo (min)</label>
-                        <input type="number" value={editingService.durationMinutes} onChange={e => setEditingService({...editingService, durationMinutes: Number(e.target.value)})} className="w-full bg-offwhite dark:bg-onyx p-5 rounded-[22px] border border-quartz/10 dark:text-white font-bold shadow-inner" />
-                     </div>
-                  </div>
-               </div>
+              <div className="space-y-8">
+                <div className="bg-white p-2 rounded-full shadow-2xl">
+                   <label className="text-[10px] font-black uppercase text-ruby ml-8 mt-4 block tracking-[0.3em]">Identidade do Ritual</label>
+                   <input 
+                    value={editingService.name} 
+                    onChange={e => setEditingService({...editingService, name: e.target.value})} 
+                    placeholder="Ex: Corte Artístico Elite" 
+                    className="w-full h-16 px-10 outline-none text-onyx font-bold text-center text-lg bg-transparent" 
+                   />
+                </div>
 
-               <div className="space-y-2">
-                  <div className="flex justify-between items-center px-4">
-                    <label className="text-[8px] font-black uppercase text-quartz tracking-widest">Narrativa Elite (IA)</label>
-                    <button onClick={handleOptimizeDescription} disabled={isOptimizing} className="text-ruby text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5 active:scale-95 transition-all">
-                      {isOptimizing ? 'Otimizando...' : <><Icons.Star filled className="w-2.5 h-2.5" /> Glow Optimizer</>}
-                    </button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="bg-white p-2 rounded-full shadow-2xl">
+                    <label className="text-[10px] font-black uppercase text-gold ml-8 mt-4 block tracking-[0.3em]">Valor (Kz)</label>
+                    <input 
+                      type="number" 
+                      value={editingService.price} 
+                      onChange={e => setEditingService({...editingService, price: Number(e.target.value)})} 
+                      placeholder="0" 
+                      className="w-full h-16 px-10 outline-none text-onyx font-bold text-center text-lg bg-transparent" 
+                    />
                   </div>
+                  <div className="bg-white p-2 rounded-full shadow-2xl">
+                    <label className="text-[10px] font-black uppercase text-emerald ml-8 mt-4 block tracking-[0.3em]">Minutos</label>
+                    <input 
+                      type="number" 
+                      value={editingService.durationMinutes} 
+                      onChange={e => setEditingService({...editingService, durationMinutes: Number(e.target.value)})} 
+                      placeholder="60" 
+                      className="w-full h-16 px-10 outline-none text-onyx font-bold text-center text-lg bg-transparent" 
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 rounded-[45px] shadow-2xl">
+                  <label className="text-[10px] font-black uppercase text-quartz ml-8 mt-4 block tracking-[0.3em] text-center">Narrativa do Ritual</label>
                   <textarea 
                     value={editingService.specification} 
                     onChange={e => setEditingService({...editingService, specification: e.target.value})} 
-                    placeholder="Como você descreveria este ritual para um cliente VIP?"
-                    className="w-full bg-offwhite dark:bg-onyx p-5 rounded-[25px] border border-quartz/10 dark:text-white font-medium h-32 md:h-40 resize-none text-xs md:text-sm shadow-inner" 
+                    placeholder="Descreva a experiência luxuosa para o cliente..." 
+                    className="w-full h-44 px-8 py-6 outline-none text-onyx font-medium text-center text-base bg-transparent resize-none leading-relaxed" 
                   />
-               </div>
-            </div>
-
-            <div className="pt-4">
-               <button onClick={handleSave} className="w-full py-6 md:py-8 bg-ruby text-white rounded-[30px] md:rounded-[40px] font-black uppercase tracking-[0.4em] text-[10px] md:text-[11px] shadow-2xl active:scale-95 transition-all border border-white/10">Publicar Ritual no Radar</button>
-               <button onClick={() => setIsAdding(false)} className="w-full py-4 text-quartz font-black uppercase text-[8px] tracking-[0.3em] mt-2 md:hidden">Cancelar e Voltar</button>
+                </div>
+              </div>
             </div>
           </div>
+
+          <footer className="shrink-0 p-8 border-t border-white/10 bg-onyx/90 backdrop-blur-2xl safe-bottom">
+             <div className="max-w-xl mx-auto flex flex-col gap-4">
+                <button 
+                  onClick={handleSave} 
+                  disabled={isSaving}
+                  className="w-full py-7 bg-ruby text-white rounded-full font-black uppercase tracking-[0.5em] text-[12px] shadow-[0_30px_70px_rgba(157,23,77,0.5)] active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-50 border border-white/10"
+                >
+                    {isSaving ? <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : 'Sincronizar Ritual'}
+                </button>
+                <button onClick={() => setIsAdding(false)} className="w-full py-2 text-quartz font-black uppercase text-[9px] tracking-[0.4em] hover:text-white transition-all text-center">Cancelar</button>
+             </div>
+          </footer>
         </div>
       )}
     </div>

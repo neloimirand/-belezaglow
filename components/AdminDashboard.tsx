@@ -1,220 +1,252 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Icons } from '../constants';
 import { UserRole, PlanTier, User } from '../types';
+import { supabase, stringifySupabaseError } from '../lib/supabase';
 
 interface AdminDashboardProps {
   onMasquerade: (user: User) => void;
 }
 
-type AdminTab = 'members' | 'brand' | 'sms' | 'plans' | 'bank' | 'payments';
-type SMSTarget = 'all' | 'pros' | 'salons' | 'individual';
+type AdminTab = 'members' | 'sms' | 'analytics';
+type SMSTarget = 'all' | 'clients' | 'pros' | 'individual';
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onMasquerade }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('members');
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [rawError, setRawError] = useState<string | null>(null);
   
-  // --- PERSISTÊNCIA DE DADOS LIMPA PARA PRODUÇÃO ---
-  const [users, setUsers] = useState<User[]>(() => {
-    const saved = localStorage.getItem('glow_admin_users');
-    return saved ? JSON.parse(saved) : []; // Iniciamos sem contas falsas
-  });
+  const [smsTarget, setSmsTarget] = useState<SMSTarget>('all');
+  const [selectedIndividualId, setSelectedIndividualId] = useState<string>('');
+  const [smsText, setSmsText] = useState('');
+  const [isSendingSms, setIsSendingSms] = useState(false);
 
-  const [paymentRequests, setPaymentRequests] = useState([]); // Limpo para produção
+  const fetchMembers = useCallback(async () => {
+    setIsLoading(true);
+    setRawError(null);
+    try {
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (profiles) {
+        setUsers(profiles.map(p => ({
+          id: p.id,
+          email: p.email || 'sem-email@glow.ao',
+          name: p.full_name || p.name || 'Usuário Sem Nome',
+          role: (p.role?.toUpperCase() || 'CLIENT') as UserRole,
+          isVerified: true,
+          status: 'active',
+          planTier: (p.plan_tier || 'FREE') as PlanTier,
+          glowPoints: p.glow_points || 0
+        })));
+      }
+    } catch (err: any) {
+      console.error("Admin Sync Error:", err);
+      setRawError(stringifySupabaseError(err));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem('glow_admin_users', JSON.stringify(users));
-  }, [users]);
+    fetchMembers();
+  }, [fetchMembers]);
 
-  // --- ESTADOS DO SMS HUB ---
-  const [smsTarget, setSmsTarget] = useState<SMSTarget>('all');
-  const [selectedUserForSMS, setSelectedUserForSMS] = useState<string>('');
-  const [smsText, setSmsText] = useState('');
+  const filteredUsers = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) return users;
+    return users.filter(u => 
+      u.name.toLowerCase().includes(term) || 
+      u.email.toLowerCase().includes(term)
+    );
+  }, [users, searchTerm]);
 
-  // --- CONTROLE DE MODAIS ---
-  const [modalType, setModalType] = useState<'plan_edit' | 'proof_view' | null>(null);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const handleSendSMS = async () => {
+    if(!smsText.trim()) return;
+    setIsSendingSms(true);
+    try {
+        let targets = [];
+        if (smsTarget === 'all') targets = users;
+        else if (smsTarget === 'clients') targets = users.filter(u => u.role === UserRole.CLIENT);
+        else if (smsTarget === 'pros') targets = users.filter(u => u.role === UserRole.PROFESSIONAL || u.role === UserRole.SALON);
+        else if (smsTarget === 'individual') targets = users.filter(u => u.id === selectedIndividualId);
 
-  const handleApprovePayment = (id: string) => {
-    setPaymentRequests(prev => prev.filter((r: any) => r.id !== id));
-    alert("Capital Validado. O plano do usuário foi ativado no ecossistema.");
-    setModalType(null);
+        if (targets.length === 0) throw new Error("Sem destinatários.");
+
+        const payloads = targets.map(u => ({
+            user_id: u.id,
+            title: 'Sinal VIP Beleza Glow',
+            message: smsText,
+            type: 'SMS'
+        }));
+
+        const { error } = await supabase.from('notifications').insert(payloads);
+        if (error) throw error;
+
+        alert("Sinal disparado com sucesso!");
+        setSmsText('');
+    } catch (err: any) {
+        alert("Falha no disparo: " + stringifySupabaseError(err));
+    } finally {
+        setIsSendingSms(false);
+    }
   };
 
-  const handleSendSMS = () => {
-    if(!smsText.trim()) return alert("Digite a mensagem de transmissão.");
-    if(smsTarget === 'individual' && !selectedUserForSMS) return alert("Selecione um membro para o envio individual.");
-    
-    setIsGenerating(true);
-    setTimeout(() => {
-      setIsGenerating(false);
-      setSmsText('');
-      const targetName = smsTarget === 'individual' 
-        ? users.find(u => u.id === selectedUserForSMS)?.name 
-        : smsTarget.toUpperCase();
-      alert(`Sinal SMS transmitido com sucesso para: ${targetName}`);
-    }, 1500);
+  const getRoleBadge = (role: UserRole) => {
+    switch(role) {
+      case UserRole.ADMIN: return <span className="bg-ruby text-white px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-widest">Mestre</span>;
+      case UserRole.SALON: return <span className="bg-gold text-onyx px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-widest">Maison</span>;
+      case UserRole.PROFESSIONAL: return <span className="bg-emerald text-white px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-widest">Artista</span>;
+      default: return <span className="bg-quartz/20 text-quartz px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-widest">Membro</span>;
+    }
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-fade-in pb-40 px-4 md:px-0">
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-40 px-4">
       
-      <header className="bg-onyx p-10 rounded-[50px] border border-white/10 luxury-shadow relative overflow-hidden text-center">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-ruby/10 rounded-full blur-[100px] -mr-32 -mt-32"></div>
-        <div className="w-16 h-16 bg-ruby mx-auto rounded-2xl flex items-center justify-center shadow-2xl mb-4 text-white">
-          <Icons.Settings />
+      <header className="bg-onyx p-10 rounded-[50px] border border-white/10 luxury-shadow flex flex-col md:flex-row justify-between items-center gap-8">
+        <div>
+          <h2 className="text-3xl md:text-5xl font-serif font-black italic text-white leading-none tracking-tighter">Glow <span className="text-gold">Governance.</span></h2>
+          <div className="flex items-center gap-3 mt-4">
+             <div className={`w-2 h-2 rounded-full ${rawError ? 'bg-red-500 animate-ping' : 'bg-emerald animate-pulse'}`}></div>
+             <span className="text-[8px] font-black uppercase tracking-widest text-quartz">
+                {rawError ? 'Erro na Infraestrutura' : 'Ecossistema Sincronizado'}
+             </span>
+             <button onClick={fetchMembers} className="ml-4 p-2 bg-white/5 rounded-lg text-white hover:bg-white/10 transition-all">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+             </button>
+          </div>
         </div>
-        <h2 className="text-3xl md:text-5xl font-serif font-black italic text-white">Glow <span className="text-gold">Governance.</span></h2>
-        <p className="text-[9px] font-black uppercase text-quartz tracking-[0.5em] mt-3">Painel de Controle Central Angola</p>
+
+        <div className="flex gap-4">
+           <div className="bg-white/5 p-6 rounded-3xl border border-white/10 text-center min-w-[120px]">
+              <p className="text-[7px] font-black uppercase text-quartz mb-1 tracking-widest">Membros Total</p>
+              <p className="text-2xl font-serif font-black text-white">{users.length}</p>
+           </div>
+        </div>
       </header>
 
-      {/* NAVEGAÇÃO PRINCIPAL */}
+      {rawError && (
+        <div className="bg-red-500/10 border-2 border-dashed border-red-500/30 p-8 rounded-[40px] text-center">
+           <p className="text-red-400 font-bold text-sm italic">Erro Técnico: {rawError}</p>
+           <p className="text-stone-500 text-[10px] mt-2 uppercase">Verifique se as tabelas do Supabase foram criadas via SQL Editor.</p>
+        </div>
+      )}
+
       <nav className="flex gap-2 overflow-x-auto scrollbar-hide bg-white dark:bg-darkCard p-2 rounded-[35px] luxury-shadow border border-quartz/5 sticky top-4 z-[100] backdrop-blur-xl">
         {[
-          { id: 'members', label: 'Membros', icon: <Icons.User /> },
-          { id: 'payments', label: 'Cofre', icon: <Icons.Dollar /> },
+          { id: 'members', label: 'Patentes', icon: <Icons.User /> },
           { id: 'sms', label: 'SMS Hub', icon: <Icons.Message /> },
-          { id: 'plans', label: 'Planos', icon: <Icons.Award /> },
-          { id: 'bank', label: 'Canais', icon: <Icons.Home /> },
+          { id: 'analytics', label: 'Crescimento', icon: <Icons.Chart /> },
         ].map((tab) => (
           <button 
             key={tab.id} 
             onClick={() => setActiveTab(tab.id as AdminTab)} 
-            className={`px-8 py-4 rounded-[25px] text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-3 whitespace-nowrap ${activeTab === tab.id ? 'bg-ruby text-white shadow-lg scale-105' : 'text-quartz hover:bg-ruby/5 dark:hover:text-white'}`}
+            className={`px-8 py-4 rounded-[25px] text-[8px] font-black uppercase tracking-widest transition-all flex items-center gap-3 whitespace-nowrap ${activeTab === tab.id ? 'bg-ruby text-white shadow-lg' : 'text-quartz hover:bg-ruby/5 dark:hover:text-white'}`}
           >
             {tab.icon} {tab.label}
           </button>
         ))}
       </nav>
 
-      <main className="bg-white dark:bg-darkCard rounded-[50px] border border-quartz/10 luxury-shadow min-h-[600px] overflow-hidden">
-        
-        {/* ABA MEMBROS */}
+      <main className="min-h-[500px]">
         {activeTab === 'members' && (
-          <div className="p-8 space-y-6">
-            <h3 className="text-2xl font-serif font-black dark:text-white italic px-4">Gestão de <span className="text-ruby">Patentes.</span></h3>
-            
-            {users.length === 0 ? (
-              <div className="py-32 text-center opacity-30 italic font-serif text-2xl">Aguardando novos membros reais...</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {users.map(u => (
-                  <div key={u.id} className="bg-offwhite dark:bg-onyx p-8 rounded-[40px] border border-quartz/10 flex items-center justify-between group hover:border-ruby/30 transition-all">
-                    <div className="flex items-center gap-6">
-                      <div className="w-16 h-16 bg-ruby/10 text-ruby rounded-2xl flex items-center justify-center font-serif font-black text-2xl">{u.name.charAt(0)}</div>
-                      <div>
-                        <h4 className="font-serif font-black dark:text-white text-xl italic">{u.name}</h4>
-                        <p className="text-[9px] font-black text-quartz uppercase tracking-widest mt-1">{u.role} • <span className="text-ruby">{u.planTier}</span></p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => onMasquerade(u)} className="p-4 bg-white dark:bg-darkCard rounded-xl text-quartz hover:text-ruby shadow-sm"><Icons.User /></button>
-                      <button onClick={() => { setSelectedItem(u); setModalType('plan_edit'); }} className="p-4 bg-white dark:bg-darkCard rounded-xl text-quartz hover:text-gold shadow-sm"><Icons.Award /></button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ABA SMS HUB */}
-        {activeTab === 'sms' && (
-          <div className="p-10 md:p-20 max-w-3xl mx-auto space-y-12 text-center animate-fade-in">
-            <div className="space-y-3">
-              <h3 className="text-4xl font-serif font-black italic dark:text-white">Glow <span className="text-ruby">SMS Hub.</span></h3>
-              <p className="text-[10px] font-black uppercase text-quartz tracking-[0.4em]">Transmissão Estratégica em Tempo Real</p>
+          <div className="space-y-8 animate-fade-in">
+            <div className="relative group max-w-xl">
+                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-quartz"><Icons.Search /></div>
+                <input 
+                  type="text" 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Localizar na rede..."
+                  className="w-full h-16 bg-white dark:bg-darkCard border border-quartz/10 rounded-[30px] pl-16 pr-8 outline-none focus:border-ruby dark:text-white font-bold transition-all shadow-sm"
+                />
             </div>
-            
-            <div className="flex flex-wrap justify-center gap-3">
-              {[
-                { id: 'all', label: 'Global: Todos' },
-                { id: 'pros', label: 'Profissionais' },
-                { id: 'salons', label: 'Salões' },
-                { id: 'individual', label: 'Individual...' }
-              ].map(t => (
-                <button 
-                  key={t.id}
-                  onClick={() => setSmsTarget(t.id as SMSTarget)} 
-                  className={`px-8 py-3 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${smsTarget === t.id ? 'bg-ruby text-white shadow-xl scale-105' : 'bg-offwhite dark:bg-onyx text-quartz border border-quartz/10'}`}
-                >
-                  {t.label}
-                </button>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {isLoading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="h-64 bg-white/5 animate-pulse rounded-[45px]"></div>
+                ))
+              ) : filteredUsers.map((u) => (
+                <div key={u.id} className="bg-white dark:bg-darkCard p-8 rounded-[45px] luxury-shadow border border-quartz/5 group relative overflow-hidden">
+                  <div className="flex items-center gap-5 mb-8">
+                      <div className="w-16 h-16 bg-offwhite dark:bg-onyx rounded-[22px] flex items-center justify-center font-serif font-black text-2xl text-ruby border border-quartz/10">
+                        {u.name.charAt(0)}
+                      </div>
+                      <div className="flex-1 overflow-hidden">
+                        <h4 className="font-serif font-black text-lg italic dark:text-white truncate">{u.name}</h4>
+                        <p className="text-[9px] text-stone-500 font-bold truncate uppercase tracking-tighter">{u.email}</p>
+                      </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mb-8">
+                      {getRoleBadge(u.role)}
+                      <span className="bg-offwhite dark:bg-onyx text-quartz px-3 py-1 rounded-full text-[7px] font-black uppercase tracking-widest border border-quartz/10">PTS: {u.glowPoints}</span>
+                  </div>
+                  <button 
+                    onClick={() => onMasquerade(u)}
+                    className="w-full py-4 bg-onyx dark:bg-white dark:text-onyx text-white rounded-2xl text-[8px] font-black uppercase tracking-widest shadow-lg hover:bg-ruby hover:text-white transition-all active:scale-95"
+                  >
+                    Entrar no Perfil
+                  </button>
+                </div>
               ))}
             </div>
-
-            {smsTarget === 'individual' && users.length > 0 && (
-              <div className="animate-fade-in scale-up">
-                <select 
-                  value={selectedUserForSMS}
-                  onChange={(e) => setSelectedUserForSMS(e.target.value)}
-                  className="w-full h-16 bg-offwhite dark:bg-onyx border border-quartz/10 rounded-3xl px-8 outline-none dark:text-white font-bold text-sm shadow-inner appearance-none focus:border-ruby transition-all"
-                >
-                  <option value="">Selecionar Destinatário na Rede...</option>
-                  {users.map(u => <option key={u.id} value={u.id}>{u.name} ({u.role})</option>)}
-                </select>
-              </div>
-            )}
-
-            <textarea 
-              value={smsText} 
-              onChange={(e) => setSmsText(e.target.value)} 
-              placeholder="Digite a ordem estratégica ou comunicado VIP..." 
-              className="w-full h-56 bg-offwhite dark:bg-onyx p-10 rounded-[50px] border border-quartz/10 dark:text-white font-medium resize-none shadow-inner outline-none focus:border-ruby transition-all text-lg" 
-            />
-            
-            <button 
-              onClick={handleSendSMS} 
-              disabled={isGenerating} 
-              className="w-full py-8 bg-ruby text-white rounded-[40px] font-black uppercase tracking-[0.5em] text-[11px] shadow-2xl active:scale-95 transition-all border border-white/10"
-            >
-              {isGenerating ? 'Sincronizando Rede...' : 'Transmitir via SMS'}
-            </button>
           </div>
         )}
 
-        {/* ABA COFRE (PAGAMENTOS) */}
-        {activeTab === 'payments' && (
-          <div className="p-8 md:p-12 space-y-10">
-            <h3 className="text-3xl font-serif font-black dark:text-white italic px-4">Auditoria do <span className="text-emerald">Cofre.</span></h3>
-            <div className="space-y-6">
-              {paymentRequests.length === 0 ? (
-                <div className="py-32 text-center opacity-30 italic font-serif text-2xl">Cofre em conformidade. Nenhuma pendência real.</div>
-              ) : (
-                paymentRequests.map((p: any) => (
-                  <div key={p.id} className="bg-offwhite dark:bg-onyx p-10 rounded-[50px] border border-quartz/10 flex flex-col md:flex-row items-center gap-10 animate-fade-in shadow-sm">
-                    <div 
-                      className="w-32 h-44 bg-black rounded-[30px] overflow-hidden border-4 border-white/5 shadow-2xl cursor-pointer group relative shrink-0"
-                      onClick={() => { setSelectedItem(p); setModalType('proof_view'); }}
+        {activeTab === 'sms' && (
+          <div className="max-w-3xl mx-auto space-y-8 animate-fade-in">
+            <div className="bg-white dark:bg-darkCard p-12 rounded-[50px] border border-quartz/10 luxury-shadow space-y-10 text-center">
+                <h3 className="text-3xl font-serif font-black italic dark:text-white tracking-tighter leading-none">Transmitir <br /><span className="text-ruby">Sinal VIP.</span></h3>
+                
+                <div className="flex bg-offwhite dark:bg-onyx p-1.5 rounded-[25px] border border-quartz/10">
+                  {['all', 'clients', 'pros', 'individual'].map(opt => (
+                    <button
+                      key={opt}
+                      onClick={() => setSmsTarget(opt as SMSTarget)}
+                      className={`flex-1 py-3 rounded-[20px] text-[8px] font-black uppercase tracking-widest transition-all ${smsTarget === opt ? 'bg-ruby text-white shadow-lg' : 'text-quartz'}`}
                     >
-                      <img src={p.proof} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-onyx/40">
-                         <Icons.Search />
-                      </div>
-                    </div>
-                    <div className="flex-1 text-center md:text-left space-y-2">
-                       <p className="text-[10px] font-black text-ruby uppercase tracking-[0.3em]">Solicitação de Ativação</p>
-                       <h4 className="text-3xl font-serif font-black dark:text-white italic">{p.userName}</h4>
-                       <p className="text-emerald font-black text-xl">{p.amount} • <span className="text-quartz text-xs uppercase font-bold">{p.plan}</span></p>
-                       <p className="text-stone-500 font-medium text-[10px] uppercase tracking-widest">{p.date}</p>
-                    </div>
-                    <div className="flex flex-col gap-3 w-full md:w-auto">
-                       <button onClick={() => handleApprovePayment(p.id)} className="px-10 py-5 bg-emerald text-white rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-xl hover:brightness-110 active:scale-95 transition-all">Aprovar Crédito</button>
-                       <button onClick={() => setPaymentRequests(prev => prev.filter((req: any) => req.id !== p.id))} className="px-10 py-5 bg-white dark:bg-darkCard text-red-500 rounded-2xl text-[9px] font-black uppercase tracking-widest border border-red-500/20 hover:bg-red-500 hover:text-white transition-all">Rejeitar</button>
-                    </div>
-                  </div>
-                ))
-              )}
+                      {opt === 'all' ? 'Todos' : opt === 'clients' ? 'Clientes' : opt === 'pros' ? 'Talentos' : 'Membro'}
+                    </button>
+                  ))}
+                </div>
+
+                {smsTarget === 'individual' && (
+                  <select 
+                    value={selectedIndividualId} 
+                    onChange={(e) => setSelectedIndividualId(e.target.value)}
+                    className="w-full bg-offwhite dark:bg-onyx p-5 rounded-2xl border border-quartz/10 dark:text-white font-bold outline-none"
+                  >
+                    <option value="">Escolher Destinatário...</option>
+                    {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  </select>
+                )}
+
+                <textarea 
+                  value={smsText} 
+                  onChange={(e) => setSmsText(e.target.value)} 
+                  placeholder="Mensagem estratégica..." 
+                  className="w-full h-48 bg-offwhite dark:bg-onyx p-8 rounded-[35px] border border-quartz/10 dark:text-white font-medium resize-none outline-none focus:border-ruby transition-all" 
+                />
+
+                <button 
+                  onClick={handleSendSMS} 
+                  disabled={isSendingSms || !smsText.trim()}
+                  className="w-full py-6 bg-ruby text-white rounded-[30px] font-black uppercase tracking-[0.4em] text-[10px] shadow-2xl active:scale-95 transition-all disabled:opacity-30"
+                >
+                  {isSendingSms ? 'Enviando...' : 'Disparar para Rede'}
+                </button>
             </div>
           </div>
         )}
-
       </main>
-
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes scale-up { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .scale-up { animation: scale-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-      `}} />
     </div>
   );
 };

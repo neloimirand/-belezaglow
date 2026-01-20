@@ -7,39 +7,44 @@ const supabaseAnonKey = 'sb_publishable_EzZ17Iw-A0jPgDu9kABl4A_cpF-O2O4';
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /**
- * Diagnóstico de Saúde do Ecossistema Beleza Glow.
- * Verifica se as tabelas existem e se as políticas de segurança estão bloqueando acessos indevidos.
+ * Converte erros complexos do Supabase/Postgres em mensagens legíveis.
  */
-export const checkEcossystemHealth = async () => {
+export const stringifySupabaseError = (error: any): string => {
+  if (!error) return 'Erro desconhecido no ecossistema.';
+  if (typeof error === 'string') return error;
+  
+  if (error.message === 'Failed to fetch' || error.message?.includes('NetworkError')) {
+    return 'Sinal de Rede Fraco: Verifique sua conexão em Luanda.';
+  }
+
+  const msg = error.message || error.details || error.hint || error.msg;
+  const code = error.code ? `[ID:${error.code}] ` : '';
+
+  if (msg && typeof msg === 'string') {
+    return `${code}${msg}`;
+  }
+
   try {
-    // Tentativa de leitura de controle
-    const { error } = await supabase.from('profiles').select('id').limit(1);
-    
-    if (error) {
-      // Erro 42P01: Tabela não existe no banco
-      if (error.code === '42P01') {
-        return { status: 'missing', message: 'Infraestrutura SQL pendente.' };
-      }
-      // Erro 42501: RLS bloqueou (O que é bom, significa que a segurança está ativa!)
-      if (error.code === '42501') {
-        return { status: 'healthy', message: 'Segurança RLS Blindada.' };
-      }
-      // Erro de nova linha viola RLS (o erro que você recebeu)
-      if (error.message?.includes('violates row-level security policy')) {
-        return { status: 'syncing', message: 'Ajustando Permissões...' };
-      }
-    }
-    return { status: 'healthy', message: 'Sincronização Live Operacional.' };
-  } catch (e) {
-    return { status: 'offline', message: 'Rede em modo de contingência.' };
+    const stringified = JSON.stringify(error);
+    return stringified === '{}' ? `Erro técnico: ${error.toString()}` : stringified;
+  } catch {
+    return 'Erro de integridade de dados no servidor.';
   }
 };
 
+/**
+ * Detecta se o erro é especificamente de tabela inexistente (Schema desatualizado)
+ */
 export const isTableMissingError = (error: any) => {
   if (!error) return false;
+  const msg = stringifySupabaseError(error).toLowerCase();
+  const code = String(error.code || '');
   return (
-    error.code === '42P01' || 
-    error.code === 'PGRST116' || 
-    error.message?.includes('does not exist')
+    code === '42P01' || 
+    code === 'PGRST204' || 
+    code === 'PGRST205' ||
+    msg.includes('does not exist') || 
+    msg.includes('not found') ||
+    msg.includes('schema cache')
   );
 };

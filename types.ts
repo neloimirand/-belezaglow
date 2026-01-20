@@ -1,4 +1,5 @@
 
+
 export enum UserRole {
   CLIENT = 'CLIENT',
   PROFESSIONAL = 'PROFESSIONAL',
@@ -26,6 +27,9 @@ export interface User {
   status: 'active' | 'suspended' | 'blocked';
   glowPoints?: number;
   planTier?: PlanTier;
+  // Fixing coordinates missing in User interface
+  lat?: number;
+  lng?: number;
 }
 
 export interface Service {
@@ -70,6 +74,7 @@ export interface ProviderProfile {
   id: string;
   userId: string;
   businessName: string;
+  role: UserRole; // Campo obrigatório para evitar tela branca no mapeamento
   location: { address: string; latitude: number; longitude: number; };
   services: Service[];
   rating: number;

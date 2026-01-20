@@ -47,6 +47,12 @@ const BusinessNotificationCenter: React.FC<BusinessNotificationCenterProps> = ({
     }
   };
 
+  const handleNotificationClick = (id: string, isRead: boolean) => {
+    if (!isRead) {
+      onMarkAsRead(id);
+    }
+  };
+
   return (
     <div className="fixed inset-y-0 right-0 w-full md:w-[450px] bg-white dark:bg-darkCard shadow-2xl z-[8500] animate-slide-in-right border-l border-quartz/10 flex flex-col">
       <header className="p-8 border-b border-quartz/5 bg-offwhite dark:bg-onyx flex justify-between items-center shrink-0">
@@ -72,7 +78,7 @@ const BusinessNotificationCenter: React.FC<BusinessNotificationCenterProps> = ({
           notifications.map((n) => (
             <div 
               key={n.id}
-              onClick={() => onMarkAsRead(n.id)}
+              onClick={() => handleNotificationClick(n.id, n.read)}
               className={`p-6 rounded-[35px] border-2 transition-all cursor-pointer group relative overflow-hidden ${
                 n.read 
                   ? 'bg-offwhite dark:bg-onyx/40 border-transparent opacity-60' 
