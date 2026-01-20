@@ -11,7 +11,6 @@ import MapExplorer from './components/MapExplorer';
 import InstallBanner from './components/InstallBanner';
 import Agenda from './components/Agenda';
 import GlobalChat from './components/GlobalChat';
-import SalonHub from './components/SalonHub';
 import LandingPage from './components/LandingPage';
 import GlowAIConcierge from './components/GlowAIConcierge';
 import Home from './components/Home';
@@ -39,7 +38,7 @@ const App: React.FC = () => {
     return (saved as any) || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   });
 
-  // Função centralizada para atualizar o usuário em todo o App e DB Local
+  // Atualização Global do Usuário (Foto e Dados)
   const handleUpdateUser = useCallback((updatedUser: User) => {
     setCurrentUser(updatedUser);
     localStorage.setItem('glow_user', JSON.stringify(updatedUser));
@@ -94,7 +93,7 @@ const App: React.FC = () => {
         setRealProviders(mapped);
       }
     } catch (err) {
-      console.warn("Sincronização em segundo plano...");
+      console.warn("Sincronização passiva...");
     }
   }, []);
 
@@ -112,10 +111,7 @@ const App: React.FC = () => {
         .or(`client_id.eq.${currentUser.id},provider_id.eq.${currentUser.id}`)
         .order('created_at', { ascending: false });
       
-      if (error) {
-        if (isTableMissingError(error)) return;
-        throw error;
-      }
+      if (error && !isTableMissingError(error)) throw error;
 
       if (data) {
         setUserAppointments(data.map((a: any) => {
@@ -137,7 +133,7 @@ const App: React.FC = () => {
         }));
       }
     } catch (err) {
-      console.error("Erro ao carregar rituais:", err);
+      console.error("Erro rituais:", err);
     }
   }, [currentUser]);
 
@@ -184,10 +180,18 @@ const App: React.FC = () => {
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
+    // Resetar modo de negociação ao mudar de aba manualmente
     setIsNegotiatingMode(false);
     if (tab !== 'profile') {
       setTargetChatContact(null);
     }
+  };
+
+  const handleNegotiateAppointment = (clientId: string, clientName: string) => {
+    setTargetChatContact({ id: clientId, name: clientName });
+    setIsNegotiatingMode(true); // Ativa o filtro que remove o perfil da vista
+    setActiveTab('profile'); 
+    setNotification({ title: "SMS Direto", message: "Iniciando negociação de ritual...", type: 'info' });
   };
 
   const handleLogin = (role: UserRole, email: string, name?: string, phone?: string, id?: string) => {
@@ -209,18 +213,14 @@ const App: React.FC = () => {
         time,
         status: AppointmentStatus.PENDING
       });
-
       if (error) throw error;
-      
       setNotification({ title: "Reserva Elite", message: "Ritual agendado com sucesso!", type: 'success' });
       setSelectedProvider(null);
       setSelectedService(null);
-      
       await fetchUserAppointments();
       setActiveTab('my-appointments');
-
     } catch (err: any) {
-      setNotification({ title: "Falha técnica", message: "Erro ao registrar agendamento.", type: 'error' });
+      setNotification({ title: "Falha técnica", message: "Erro ao registrar.", type: 'error' });
     }
   };
 
@@ -229,17 +229,10 @@ const App: React.FC = () => {
       const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
       if (error) throw error;
       await fetchUserAppointments();
-      setNotification({ title: "Status Atualizado", message: `O ritual foi ${status.toLowerCase()} com sucesso.`, type: 'success' });
+      setNotification({ title: "Status Atualizado", message: `O ritual foi ${status.toLowerCase()}.`, type: 'success' });
     } catch (err) {
-      setNotification({ title: "Erro", message: "Falha ao atualizar status.", type: 'error' });
+      setNotification({ title: "Erro", message: "Falha ao atualizar.", type: 'error' });
     }
-  };
-
-  const handleNegotiateAppointment = (clientId: string, clientName: string) => {
-    setTargetChatContact({ id: clientId, name: clientName });
-    setIsNegotiatingMode(true); 
-    setActiveTab('profile'); 
-    setNotification({ title: "SMS de Negociação", message: "Canal de chat exclusivo aberto.", type: 'info' });
   };
 
   const deleteAppointment = async (id: string) => {
@@ -248,7 +241,7 @@ const App: React.FC = () => {
       const { error } = await supabase.from('appointments').delete().eq('id', id);
       if (error) throw error;
       await fetchUserAppointments();
-      setNotification({ title: "Ritual Removido", message: "O agendamento foi retirado do ecossistema.", type: 'info' });
+      setNotification({ title: "Ritual Removido", message: "Registro apagado do ecossistema.", type: 'info' });
     } catch (err) {
       setNotification({ title: "Erro", message: "Falha ao eliminar.", type: 'error' });
     }
@@ -265,7 +258,7 @@ const App: React.FC = () => {
         
         {!isSchemaReady && (
           <div className="fixed top-0 left-0 right-0 bg-gold text-onyx text-[9px] font-black py-2.5 z-[9999] text-center uppercase tracking-widest animate-pulse">
-            ⚠️ Atenção: Execute o script SQL no editor do Supabase para ativar os agendamentos.
+            ⚠️ Atenção: Execute o script SQL no Supabase para ativar os agendamentos.
           </div>
         )}
 
@@ -296,7 +289,7 @@ const App: React.FC = () => {
               onUpdateStatus={updateAppointmentStatus} 
               onDelete={deleteAppointment}
               onNegotiate={handleNegotiateAppointment}
-              onChat={(name) => { setTargetChatContact({id: 'dynamic', name}); setIsNegotiatingMode(true); setActiveTab('profile'); }}
+              onChat={(name) => { setTargetChatContact({id: 'dynamic', name}); setActiveTab('profile'); }}
               onReschedule={(b) => {
                 const provider = realProviders.find(p => p.id === b.providerId);
                 if (provider) {
@@ -311,7 +304,7 @@ const App: React.FC = () => {
           {activeTab === 'discover' && <Marketplace onSelectProvider={setSelectedProvider} onViewOnMap={() => handleTabChange('map')} providers={realProviders} />}
           {activeTab === 'profile' && (
             <div className="space-y-12">
-               {!isNegotiatingMode && (
+               {!isNegotiatingMode ? (
                  <>
                    <UserProfile 
                     user={currentUser} 
@@ -320,16 +313,21 @@ const App: React.FC = () => {
                    />
                    <div className="h-px bg-quartz/10"></div>
                  </>
+               ) : (
+                 <div className="max-w-4xl mx-auto px-4">
+                    <button 
+                      onClick={() => setIsNegotiatingMode(false)}
+                      className="mb-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-ruby hover:opacity-70 transition-all"
+                    >
+                      ← Voltar ao meu Perfil
+                    </button>
+                    <div className="mb-6 p-6 bg-ruby/5 border border-ruby/10 rounded-[30px]">
+                       <p className="text-[10px] font-black uppercase text-ruby tracking-[0.4em]">Canal de Negociação Exclusivo</p>
+                       <p className="text-stone-500 dark:text-quartz text-xs mt-1 italic">Dados de perfil ocultados para foco total no ritual do cliente.</p>
+                    </div>
+                 </div>
                )}
                <div className="max-w-4xl mx-auto">
-                 {isNegotiatingMode && (
-                   <button 
-                    onClick={() => setIsNegotiatingMode(false)}
-                    className="mb-8 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-ruby hover:opacity-70 transition-all"
-                   >
-                     ← Voltar ao meu Perfil
-                   </button>
-                 )}
                  <ChatSystem user={currentUser} initialContact={targetChatContact} />
                </div>
             </div>

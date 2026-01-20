@@ -38,7 +38,7 @@ const ChatSystem: React.FC<ChatSystemProps> = ({ user, initialContact }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Lidar com pedidos de negociação externa (Ritual -> Chat SMS)
+  // Gatilho de negociação externa (da Agenda para o Chat)
   useEffect(() => {
     if (initialContact) {
       const existing = contacts.find(c => c.id === initialContact.id);
@@ -50,18 +50,17 @@ const ChatSystem: React.FC<ChatSystemProps> = ({ user, initialContact }) => {
           name: initialContact.name,
           role: 'Membro Elite (Cliente)',
           avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(initialContact.name)}&background=9D174D&color=fff`,
-          lastMessage: 'Negociação iniciada via Agenda...',
+          lastMessage: 'Aguardando negociação via SMS...',
           online: true
         };
         setContacts(prev => [newContact, ...prev]);
         setActiveConvId(newContact.id);
       }
-      // Focar o input para o Pro escrever a mensagem
       setTimeout(() => inputRef.current?.focus(), 600);
     }
   }, [initialContact]);
 
-  // Monitorar Mensagens em Tempo Real via Supabase
+  // Sync de Mensagens em Tempo Real
   useEffect(() => {
     if (!user || !activeConvId) return;
 
@@ -86,14 +85,11 @@ const ChatSystem: React.FC<ChatSystemProps> = ({ user, initialContact }) => {
 
     fetchMessages();
 
-    // CANAL DE TEMPO REAL COM FILTRO ANTI-DUPLICIDADE
+    // Filtro anti-duplicidade: ignora mensagens cujo remetente seja o usuário atual
     const channel = supabase.channel(`private-chat-${activeConvId}`)
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         const m = payload.new;
-        
-        // CORREÇÃO: Apenas adicionar se a mensagem for do OUTRO usuário. 
-        // A mensagem do próprio usuário já é adicionada via "handleSendMessage" (Otimismo).
-        if (m.sender_id === activeConvId && m.receiver_id === user.id) {
+        if (m.sender_id !== user.id && m.receiver_id === user.id && m.sender_id === activeConvId) {
           setMessages(prev => [...prev, {
             id: m.id,
             sender_id: m.sender_id,
@@ -123,7 +119,7 @@ const ChatSystem: React.FC<ChatSystemProps> = ({ user, initialContact }) => {
     const currentTarget = activeConvId;
     setInputText('');
 
-    // ENVIO OTIMISTA (ADICIONA NA TELA ANTES DO BANCO DE DADOS)
+    // Adição otimista local (Rápido e Fluido)
     const tempId = `temp-${Date.now()}`;
     setMessages(prev => [...prev, {
         id: tempId,
@@ -133,7 +129,7 @@ const ChatSystem: React.FC<ChatSystemProps> = ({ user, initialContact }) => {
         type: 'text'
     }]);
 
-    // ENVIO PARA O BANCO DE DADOS
+    // Registro persistente
     await supabase.from('messages').insert({
       sender_id: currentId,
       receiver_id: currentTarget,
@@ -150,8 +146,8 @@ const ChatSystem: React.FC<ChatSystemProps> = ({ user, initialContact }) => {
       {/* LISTA DE CONTATOS */}
       <aside className={`w-full md:w-80 border-r border-quartz/10 bg-offwhite dark:bg-onyx/50 flex flex-col ${activeConvId ? 'hidden md:flex' : 'flex'}`}>
          <header className="p-8 border-b border-quartz/10">
-            <h3 className="text-xl font-serif font-black dark:text-white italic">Conversas.</h3>
-            <p className="text-[8px] font-black uppercase text-quartz tracking-widest mt-1">Negociações Activas</p>
+            <h3 className="text-xl font-serif font-black dark:text-white italic">Mensagens.</h3>
+            <p className="text-[8px] font-black uppercase text-quartz tracking-widest mt-1">Sinais em Tempo Real</p>
          </header>
          <div className="flex-1 overflow-y-auto p-4 space-y-2 scrollbar-hide">
             {contacts.map(contact => (
@@ -186,7 +182,7 @@ const ChatSystem: React.FC<ChatSystemProps> = ({ user, initialContact }) => {
                   <div>
                     <h4 className="font-serif font-black text-lg dark:text-white italic leading-none">{activeContact.name}</h4>
                     <span className="text-[8px] font-black uppercase text-emerald tracking-widest flex items-center gap-1 mt-1">
-                      <div className="w-1 h-1 bg-emerald rounded-full animate-ping"></div> Canal de SMS Activo
+                      <div className="w-1 h-1 bg-emerald rounded-full animate-ping"></div> Sessão Privada Ativa
                     </span>
                   </div>
                </div>
@@ -196,7 +192,7 @@ const ChatSystem: React.FC<ChatSystemProps> = ({ user, initialContact }) => {
                {messages.length === 0 ? (
                  <div className="h-full flex flex-col items-center justify-center opacity-20 text-center space-y-4">
                     <div className="w-16 h-16 bg-quartz/10 rounded-full flex items-center justify-center"><Icons.Message /></div>
-                    <p className="font-serif italic text-lg">Inicie a negociação do ritual.</p>
+                    <p className="font-serif italic text-lg">Inicie o ritual de negociação.</p>
                  </div>
                ) : (
                  messages.map((msg) => (
@@ -216,20 +212,18 @@ const ChatSystem: React.FC<ChatSystemProps> = ({ user, initialContact }) => {
 
             <footer className="p-6 md:p-8 border-t border-quartz/10 bg-white dark:bg-darkCard shrink-0">
                <form onSubmit={handleSendMessage} className="max-w-4xl mx-auto flex gap-4">
-                  <div className="flex-1 relative group">
-                    <input 
-                      ref={inputRef}
-                      type="text" 
-                      value={inputText}
-                      onChange={(e) => setInputText(e.target.value)}
-                      placeholder="Propor novos detalhes via SMS..." 
-                      className="w-full bg-offwhite dark:bg-onyx rounded-[25px] py-5 px-8 outline-none dark:text-white font-bold text-sm shadow-inner border border-transparent focus:border-ruby transition-all"
-                    />
-                  </div>
+                  <input 
+                    ref={inputRef}
+                    type="text" 
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    placeholder="Escrever proposta de SMS..." 
+                    className="flex-1 bg-offwhite dark:bg-onyx rounded-[25px] py-5 px-8 outline-none dark:text-white font-bold text-sm shadow-inner border border-transparent focus:border-ruby transition-all"
+                  />
                   <button 
                     type="submit" 
                     disabled={!inputText.trim()}
-                    className="w-16 h-16 bg-ruby text-white rounded-[22px] flex items-center justify-center shadow-xl shadow-ruby/20 active:scale-90 transition-all disabled:opacity-30"
+                    className="w-16 h-16 bg-ruby text-white rounded-[22px] flex items-center justify-center shadow-xl active:scale-90 transition-all disabled:opacity-30"
                   >
                      <Icons.Message />
                   </button>
@@ -242,8 +236,8 @@ const ChatSystem: React.FC<ChatSystemProps> = ({ user, initialContact }) => {
                 <Icons.Message />
              </div>
              <div className="text-center space-y-2">
-                <p className="font-serif italic text-3xl font-black">Central de Mensagens.</p>
-                <p className="text-[9px] font-black uppercase tracking-[0.4em]">Selecione um cliente para negociar rituais</p>
+                <p className="font-serif italic text-3xl font-black">Central de SMS.</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.4em]">Selecione uma negociação activa</p>
              </div>
           </div>
         )}
